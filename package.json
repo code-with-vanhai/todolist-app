@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://akabara.github.io/todolist-app",
+  "homepage": "https://Akabara.github.io/todolist-app",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
