@@ -7,13 +7,15 @@ import {
   updateProfile,
 } from 'firebase/auth'
 import { auth } from './firebase'
+import { getFirebaseErrorMessage } from '../utils/errorHandler'
 
 export const loginWithEmail = async (email: string, password: string) => {
   try {
     const result = await signInWithEmailAndPassword(auth, email, password)
     return { user: result.user, error: null }
   } catch (error: any) {
-    return { user: null, error: error.message }
+    const friendlyError = getFirebaseErrorMessage(error)
+    return { user: null, error: friendlyError }
   }
 }
 
@@ -31,7 +33,8 @@ export const registerWithEmail = async (
     
     return { user: result.user, error: null }
   } catch (error: any) {
-    return { user: null, error: error.message }
+    const friendlyError = getFirebaseErrorMessage(error)
+    return { user: null, error: friendlyError }
   }
 }
 
@@ -41,7 +44,8 @@ export const loginWithGoogle = async () => {
     const result = await signInWithPopup(auth, provider)
     return { user: result.user, error: null }
   } catch (error: any) {
-    return { user: null, error: error.message }
+    const friendlyError = getFirebaseErrorMessage(error)
+    return { user: null, error: friendlyError }
   }
 }
 
@@ -50,6 +54,7 @@ export const logout = async () => {
     await signOut(auth)
     return { error: null }
   } catch (error: any) {
-    return { error: error.message }
+    const friendlyError = getFirebaseErrorMessage(error)
+    return { error: friendlyError }
   }
 }

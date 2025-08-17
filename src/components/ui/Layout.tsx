@@ -42,6 +42,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               className="ml-1 flex h-10 w-10 items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
               onClick={() => setSidebarOpen(false)}
+              aria-label="Đóng menu điều hướng"
             >
               <XMarkIcon className="h-6 w-6 text-white" />
             </button>
@@ -134,6 +135,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               type="button"
               className="border-r border-gray-200 px-4 text-gray-500 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary-500 lg:hidden"
               onClick={() => setSidebarOpen(true)}
+              aria-label="Mở menu điều hướng"
             >
               <Bars3Icon className="h-6 w-6" />
             </button>

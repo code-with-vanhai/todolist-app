@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Group } from '../../types'
 import { useGroupStore } from '../../stores/groupStore'
 import { useAuthStore } from '../../stores/authStore'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { Modal } from '../ui/Modal'
 import LoadingSpinner from '../ui/LoadingSpinner'
 
 interface GroupFormProps {
@@ -72,21 +72,12 @@ const GroupForm: React.FC<GroupFormProps> = ({ group, onClose, onSuccess }) => {
   ]
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            {group ? 'Edit Group' : 'Create New Group'}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal 
+      isOpen={true} 
+      onClose={onClose} 
+      title={group ? 'Chỉnh sửa Nhóm' : 'Tạo Nhóm mới'}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded">
               {error}
@@ -172,8 +163,7 @@ const GroupForm: React.FC<GroupFormProps> = ({ group, onClose, onSuccess }) => {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

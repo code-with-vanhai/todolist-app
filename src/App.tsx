@@ -1,14 +1,14 @@
 import { HashRouter as Router, Routes, Route } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { useAuthStore } from './stores/authStore'
 import { auth } from './services/firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 
-// Pages
-import LoginPage from './pages/LoginPage'
-import DashboardPage from './pages/DashboardPage'
-import TasksPage from './pages/TasksPage'
-import CalendarPage from './pages/CalendarPage'
+// Lazy load pages
+const LoginPage = lazy(() => import('./pages/LoginPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const TasksPage = lazy(() => import('./pages/TasksPage'))
+const CalendarPage = lazy(() => import('./pages/CalendarPage'))
 
 // Components
 import Layout from './components/ui/Layout'
@@ -48,24 +48,36 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<DashboardPage />} />
-                    <Route path="/tasks" element={<TasksPage />} />
-                    <Route path="/calendar" element={<CalendarPage />} />
-                  </Routes>
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
-        <DebugPanel />
+        <Suspense fallback={
+          <div className="min-h-screen flex items-center justify-center">
+            <LoadingSpinner size="lg" />
+          </div>
+        }>
+          <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Suspense fallback={
+                      <div className="flex items-center justify-center h-64">
+                        <LoadingSpinner size="lg" />
+                      </div>
+                    }>
+                      <Routes>
+                        <Route path="/" element={<DashboardPage />} />
+                        <Route path="/tasks" element={<TasksPage />} />
+                        <Route path="/calendar" element={<CalendarPage />} />
+                      </Routes>
+                    </Suspense>
+                  </Layout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </Suspense>
+        {import.meta.env.DEV && <DebugPanel />}
       </div>
     </Router>
   )

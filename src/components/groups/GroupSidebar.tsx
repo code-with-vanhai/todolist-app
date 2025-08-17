@@ -10,6 +10,8 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline'
 import GroupForm from './GroupForm'
+import { useConfirm } from '../ui/ConfirmDialog'
+import { useToast } from '../ui/Toast'
 
 const GroupSidebar = () => {
   const { user } = useAuthStore()
@@ -18,6 +20,8 @@ const GroupSidebar = () => {
   const [isExpanded, setIsExpanded] = useState(true)
   const [showGroupForm, setShowGroupForm] = useState(false)
   const [editingGroup, setEditingGroup] = useState<any>(null)
+  const { confirm, ConfirmComponent } = useConfirm()
+  const { showToast } = useToast()
 
   useEffect(() => {
     fetchGroups()
@@ -47,15 +51,29 @@ const GroupSidebar = () => {
   }
 
   const handleDeleteGroup = async (groupId: string) => {
-    if (!user || !confirm('Are you sure you want to delete this group? Tasks in this group will be moved to Default.')) {
-      return
-    }
+    if (!user) return
     
-    try {
-      await deleteGroup(user.uid, groupId)
-    } catch (error) {
-      console.error('Failed to delete group:', error)
-    }
+    const group = groups.find(g => g.id === groupId)
+    const taskCount = getTaskCount(groupId)
+    
+    confirm(
+      'Xóa nhóm',
+      `Bạn có chắc chắn muốn xóa nhóm "${group?.name}"? ${taskCount > 0 ? `${taskCount} task(s) sẽ được chuyển về nhóm Default.` : ''}`,
+      async () => {
+        try {
+          const result = await deleteGroup(user.uid, groupId)
+          if (result.error) {
+            showToast(result.error, 'error')
+          } else {
+            showToast(`Đã xóa nhóm "${group?.name}" thành công`, 'success')
+          }
+        } catch (error: any) {
+          showToast('Có lỗi xảy ra khi xóa nhóm', 'error')
+        }
+      },
+      'danger',
+      'Xóa nhóm'
+    )
   }
 
   const handleEditGroup = (group: any) => {
@@ -80,7 +98,7 @@ const GroupSidebar = () => {
         <button
           onClick={() => setShowGroupForm(true)}
           className="text-gray-400 hover:text-primary-600"
-          title="Add new group"
+          aria-label="Thêm nhóm mới"
         >
           <PlusIcon className="w-4 h-4" />
         </button>
@@ -136,7 +154,7 @@ const GroupSidebar = () => {
                     handleEditGroup(group)
                   }}
                   className="p-1 text-gray-400 hover:text-blue-600 rounded"
-                  title="Edit group"
+                  aria-label={`Chỉnh sửa nhóm ${group.name}`}
                 >
                   <PencilIcon className="w-3 h-3" />
                 </button>
@@ -146,7 +164,7 @@ const GroupSidebar = () => {
                     handleDeleteGroup(group.id)
                   }}
                   className="p-1 text-gray-400 hover:text-red-600 rounded"
-                  title="Delete group"
+                  aria-label={`Xóa nhóm ${group.name}`}
                 >
                   <TrashIcon className="w-3 h-3" />
                 </button>
@@ -166,9 +184,11 @@ const GroupSidebar = () => {
           onSuccess={() => {
             setShowGroupForm(false)
             setEditingGroup(null)
+            showToast(editingGroup ? 'Cập nhật nhóm thành công' : 'Tạo nhóm thành công', 'success')
           }}
         />
       )}
+      <ConfirmComponent />
     </div>
   )
 }

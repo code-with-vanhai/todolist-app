@@ -3,6 +3,7 @@ import { Group } from '../types'
 import { groupService } from '../services/groups'
 import { useAuthStore } from './authStore'
 import { debugLog, debugError } from '../utils/debug'
+import { getFirebaseErrorMessage } from '../utils/errorHandler'
 
 interface GroupState {
   groups: Group[]
@@ -57,19 +58,13 @@ export const useGroupStore = create<GroupState>((set, get) => ({
       return
     }
     
+    // Ensure default group exists first
+    groupService.ensureDefaultGroup(user.uid).catch(error => {
+      debugError('GroupStore: Failed to ensure default group', error)
+    })
+
     // Subscribe to real-time updates
     const newUnsubscribe = groupService.subscribeToGroups(user.uid, (groups) => {
-      // Add default group if it doesn't exist
-      const hasDefault = groups.some(group => group.name === 'Default')
-      if (!hasDefault) {
-        // Create default group
-        groupService.createGroup(user.uid, {
-          name: 'Default',
-          color: '#6B7280',
-          icon: '📋',
-        })
-      }
-      
       set({ groups, loading: false, error: null })
     })
     
@@ -105,7 +100,8 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         set({ error: result.error })
       }
     } catch (error: any) {
-      set({ error: error.message })
+      const friendlyError = getFirebaseErrorMessage(error)
+      set({ error: friendlyError })
     }
   },
   
@@ -116,7 +112,8 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         set({ error: result.error })
       }
     } catch (error: any) {
-      set({ error: error.message })
+      const friendlyError = getFirebaseErrorMessage(error)
+      set({ error: friendlyError })
     }
   },
   

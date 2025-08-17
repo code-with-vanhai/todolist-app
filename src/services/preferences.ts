@@ -1,5 +1,6 @@
 import { doc, getDoc, onSnapshot, setDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from './firebase'
+import { getFirebaseErrorMessage } from '../utils/errorHandler'
 
 export type ThemeMode = 'light' | 'dark'
 
@@ -29,9 +30,14 @@ class PreferencesService {
   }
 
   async setTheme(userId: string, theme: ThemeMode) {
-    const ref = this.prefDocRef(userId)
-    await setDoc(ref, { theme, updatedAt: serverTimestamp() }, { merge: true })
-    return { error: null }
+    try {
+      const ref = this.prefDocRef(userId)
+      await setDoc(ref, { theme, updatedAt: serverTimestamp() }, { merge: true })
+      return { error: null }
+    } catch (error: any) {
+      const friendlyError = getFirebaseErrorMessage(error)
+      return { error: friendlyError }
+    }
   }
 }
 

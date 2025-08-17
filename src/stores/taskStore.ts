@@ -120,13 +120,32 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
   
   toggleTaskCompletion: async (userId, taskId, isCompleted) => {
+    // Optimistic update
+    const { tasks } = get()
+    const originalTasks = [...tasks]
+    const optimisticTasks = tasks.map(task => 
+      task.id === taskId 
+        ? { 
+            ...task, 
+            isCompleted, 
+            status: isCompleted ? TaskStatus.COMPLETED : TaskStatus.TODO,
+            completedAt: isCompleted ? new Date() : null 
+          }
+        : task
+    )
+    set({ tasks: optimisticTasks })
+
     try {
       const result = await taskService.toggleTaskCompletion(userId, taskId, isCompleted)
       if (result.error) {
-        set({ error: result.error })
+        // Rollback on error
+        set({ tasks: originalTasks, error: result.error })
+        throw new Error(result.error)
       }
     } catch (error: any) {
-      set({ error: error.message })
+      // Rollback optimistic update
+      set({ tasks: originalTasks, error: error.message })
+      throw error
     }
   },
   

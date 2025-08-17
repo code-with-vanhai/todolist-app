@@ -10,16 +10,23 @@ import {
   Timestamp,
   DocumentData,
   QuerySnapshot,
+  serverTimestamp,
+  setDoc,
+  where,
+  getDocs,
+  writeBatch,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { Group } from '../types'
 import { debugLog, debugError } from '../utils/debug'
+import { getFirebaseErrorMessage } from '../utils/errorHandler'
 
 // Firestore data conversion utilities
 export const groupToFirestore = (group: Omit<Group, 'id' | 'userId'>) => {
   return {
     ...group,
-    createdAt: Timestamp.fromDate(group.createdAt),
+    createdAt: group.createdAt ? Timestamp.fromDate(group.createdAt) : serverTimestamp(),
+    updatedAt: serverTimestamp(),
   }
 }
 
@@ -29,7 +36,7 @@ export const firestoreToGroup = (doc: DocumentData, userId: string): Group => {
     id: doc.id,
     userId,
     ...data,
-    createdAt: data.createdAt.toDate(),
+    createdAt: data.createdAt?.toDate?.() || new Date(), // Defensive read
   }
 }
 
@@ -38,17 +45,35 @@ export class GroupService {
     return collection(db, 'users', userId, 'groups')
   }
 
+  // Ensure default group exists (idempotent)
+  async ensureDefaultGroup(userId: string): Promise<string> {
+    try {
+      const defaultGroupRef = doc(db, 'users', userId, 'groups', 'default')
+      await setDoc(defaultGroupRef, {
+        name: 'Default',
+        color: '#6B7280', 
+        icon: '📋',
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      }, { merge: true })
+      return 'default'
+    } catch (error: any) {
+      debugError('GroupService: Ensure default group failed', error)
+      throw error
+    }
+  }
+
   // Create a new group
   async createGroup(userId: string, groupData: Omit<Group, 'id' | 'userId' | 'createdAt'>) {
     try {
       debugLog('GroupService: Creating group', { userId, groupData })
       
-      const group = {
+      const firestoreData = {
         ...groupData,
-        createdAt: new Date(),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       }
-
-      const firestoreData = groupToFirestore(group)
+      
       debugLog('GroupService: Firestore data', firestoreData)
       
       const docRef = await addDoc(this.getGroupsCollection(userId), firestoreData)
@@ -57,7 +82,8 @@ export class GroupService {
       return { id: docRef.id, error: null }
     } catch (error: any) {
       debugError('GroupService: Create group failed', error)
-      return { id: null, error: error.message }
+      const friendlyError = getFirebaseErrorMessage(error)
+      return { id: null, error: friendlyError }
     }
   }
 
@@ -67,23 +93,55 @@ export class GroupService {
       const groupRef = doc(this.getGroupsCollection(userId), groupId)
       const updateData: any = {
         ...updates,
+        updatedAt: serverTimestamp(),
       }
 
       await updateDoc(groupRef, updateData)
       return { error: null }
     } catch (error: any) {
-      return { error: error.message }
+      const friendlyError = getFirebaseErrorMessage(error)
+      return { error: friendlyError }
     }
   }
 
   // Delete a group
   async deleteGroup(userId: string, groupId: string) {
+    if (groupId === 'default') {
+      return { error: 'Không thể xóa nhóm mặc định' }
+    }
+
     try {
+      // 1. Ensure default group exists
+      const defaultGroupId = await this.ensureDefaultGroup(userId)
+
+      // 2. Get all tasks with this groupId
+      const tasksQuery = query(
+        collection(db, 'users', userId, 'tasks'),
+        where('groupId', '==', groupId)
+      )
+      const tasksSnapshot = await getDocs(tasksQuery)
+
+      // 3. Batch update tasks and delete group
+      const batch = writeBatch(db)
+      
+      tasksSnapshot.docs.forEach(taskDoc => {
+        batch.update(taskDoc.ref, { 
+          groupId: defaultGroupId,
+          updatedAt: serverTimestamp()
+        })
+      })
+
+      // Delete the group
       const groupRef = doc(this.getGroupsCollection(userId), groupId)
-      await deleteDoc(groupRef)
+      batch.delete(groupRef)
+
+      await batch.commit()
+      debugLog('GroupService: Group deleted and tasks moved to default', { groupId, tasksCount: tasksSnapshot.size })
       return { error: null }
     } catch (error: any) {
-      return { error: error.message }
+      debugError('GroupService: Delete group failed', error)
+      const friendlyError = getFirebaseErrorMessage(error)
+      return { error: friendlyError }
     }
   }
 

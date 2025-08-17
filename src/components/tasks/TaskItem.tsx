@@ -4,6 +4,8 @@ import { useTaskStore } from '../../stores/taskStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useGroupStore } from '../../stores/groupStore'
 import TaskForm from './TaskForm'
+import { useConfirm } from '../ui/ConfirmDialog'
+import { useToast } from '../ui/Toast'
 import {
   CheckCircleIcon,
   ClockIcon,
@@ -23,6 +25,8 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
   const { getGroupById, getDefaultGroup } = useGroupStore()
   const [loading, setLoading] = useState(false)
   const [showEditForm, setShowEditForm] = useState(false)
+  const { confirm, ConfirmComponent } = useConfirm()
+  const { showToast } = useToast()
 
   const group = task.groupId ? getGroupById(task.groupId) : getDefaultGroup()
 
@@ -61,15 +65,39 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
   const handleToggleCompletion = async () => {
     if (!user) return
     setLoading(true)
-    await toggleTaskCompletion(user.uid, task.id, !task.isCompleted)
-    setLoading(false)
+    try {
+      await toggleTaskCompletion(user.uid, task.id, !task.isCompleted)
+      showToast(
+        task.isCompleted ? 'Đã đánh dấu task chưa hoàn thành' : 'Đã hoàn thành task!', 
+        'success'
+      )
+    } catch (error: any) {
+      showToast('Có lỗi xảy ra khi cập nhật task', 'error')
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const handleDelete = async () => {
-    if (!user || !confirm('Are you sure you want to delete this task?')) return
-    setLoading(true)
-    await deleteTask(user.uid, task.id)
-    setLoading(false)
+  const handleDelete = () => {
+    if (!user) return
+    
+    confirm(
+      'Xóa task',
+      `Bạn có chắc chắn muốn xóa task "${task.title}"?`,
+      async () => {
+        setLoading(true)
+        try {
+          await deleteTask(user.uid, task.id)
+          showToast('Đã xóa task thành công', 'success')
+        } catch (error: any) {
+          showToast('Có lỗi xảy ra khi xóa task', 'error')
+        } finally {
+          setLoading(false)
+        }
+      },
+      'danger',
+      'Xóa task'
+    )
   }
 
   return (
@@ -84,6 +112,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
             onClick={handleToggleCompletion}
             disabled={loading}
             className="mt-1 text-gray-400 hover:text-green-600 transition-colors"
+            aria-label={task.isCompleted ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu hoàn thành'}
           >
             {task.isCompleted ? (
               <CheckCircleIconSolid className="w-6 h-6 text-green-600" />
@@ -144,7 +173,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
           <button
             onClick={() => setShowEditForm(true)}
             className="text-gray-400 hover:text-blue-600 transition-colors"
-            title="Edit task"
+            aria-label="Chỉnh sửa task"
           >
             <PencilIcon className="w-5 h-5" />
           </button>
@@ -152,7 +181,7 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
             onClick={handleDelete}
             disabled={loading}
             className="text-gray-400 hover:text-red-600 transition-colors"
-            title="Delete task"
+            aria-label="Xóa task"
           >
             <TrashIcon className="w-5 h-5" />
           </button>
@@ -163,9 +192,13 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
         <TaskForm
           task={task}
           onClose={() => setShowEditForm(false)}
-          onSuccess={() => setShowEditForm(false)}
+          onSuccess={() => {
+            setShowEditForm(false)
+            showToast('Cập nhật task thành công', 'success')
+          }}
         />
       )}
+      <ConfirmComponent />
     </div>
   )
 }

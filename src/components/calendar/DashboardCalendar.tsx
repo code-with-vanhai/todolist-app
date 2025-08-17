@@ -25,6 +25,12 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
   } | null>(null)
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
   const [dragOverDate, setDragOverDate] = useState<Date | null>(null)
+  const [showMobileMenu, setShowMobileMenu] = useState<{
+    task: Task
+    x: number
+    y: number
+  } | null>(null)
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
   const { user } = useAuthStore()
   const { getGroupById, getDefaultGroup } = useGroupStore()
   const { filters, toggleTaskCompletion, updateTask } = useTaskStore()
@@ -133,9 +139,10 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
     }
   }
 
-  // Close context menu when clicking elsewhere
+  // Close menus when clicking elsewhere
   const handleDocumentClick = () => {
     setContextMenu(null)
+    setShowMobileMenu(null)
   }
 
   // Handle drag start
@@ -189,13 +196,53 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
     setDragOverDate(null)
   }
 
-  // Add event listener for closing context menu
+  // Mobile touch handlers
+  const handleTouchStart = (e: React.TouchEvent, task: Task) => {
+    if (task.isCompleted) return
+    
+    const touch = e.touches[0]
+    const timer = setTimeout(() => {
+      // Long press detected
+      setShowMobileMenu({
+        task,
+        x: touch.clientX,
+        y: touch.clientY
+      })
+    }, 500)
+    
+    setLongPressTimer(timer)
+  }
+
+  const handleTouchEnd = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      setLongPressTimer(null)
+    }
+  }
+
+  const handleTouchMove = () => {
+    if (longPressTimer) {
+      clearTimeout(longPressTimer)
+      setLongPressTimer(null)
+    }
+  }
+
+  // Add event listener for closing menus
   useEffect(() => {
-    if (contextMenu) {
+    if (contextMenu || showMobileMenu) {
       document.addEventListener('click', handleDocumentClick)
       return () => document.removeEventListener('click', handleDocumentClick)
     }
-  }, [contextMenu])
+  }, [contextMenu, showMobileMenu])
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (longPressTimer) {
+        clearTimeout(longPressTimer)
+      }
+    }
+  }, [longPressTimer])
 
   const getPriorityColor = (priority: Priority) => {
     switch (priority) {
@@ -345,25 +392,47 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
                           ? 'opacity-50 scale-95'
                           : ''
                       }`}
-                      title={`${task.title} - ${group?.name || 'Default'} ${isOverdue ? '(OVERDUE)' : urgencyLevel === 'critical' ? '(CRITICAL)' : urgencyLevel === 'urgent' ? '(URGENT)' : ''} (Drag to reschedule, Double-click to edit, Right-click for options)`}
+                      title={`${task.title} - ${group?.name || 'Default'} ${isOverdue ? '(OVERDUE)' : urgencyLevel === 'critical' ? '(CRITICAL)' : urgencyLevel === 'urgent' ? '(URGENT)' : ''}`}
                       onDragStart={(e) => handleDragStart(e, task)}
                       onDragEnd={handleDragEnd}
                       onDoubleClick={() => setEditingTask(task)}
                       onContextMenu={(e) => handleTaskRightClick(e, task)}
+                      onTouchStart={(e) => handleTouchStart(e, task)}
+                      onTouchEnd={handleTouchEnd}
+                      onTouchMove={handleTouchMove}
                     >
-                      <div className="flex items-center space-x-1">
-                        <div className={`w-2 h-2 rounded-full ${getPriorityColor(displayPriority)}`} />
-                        <span className="truncate">{task.title}</span>
-                        {isOverdue && (
-                          <span className="text-red-600 font-bold" title="Overdue">⚠</span>
-                        )}
-                        {!isOverdue && urgencyLevel === 'critical' && (
-                          <span className="text-red-500 font-bold" title="Critical urgency">🔥</span>
-                        )}
-                        {!isOverdue && urgencyLevel === 'urgent' && (
-                          <span className="text-orange-500 font-bold" title="Urgent">⚡</span>
-                        )}
-                        <span className="text-gray-400 text-xs">⋮⋮</span>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-1 flex-1 min-w-0">
+                          <div className={`w-2 h-2 rounded-full ${getPriorityColor(displayPriority)}`} />
+                          <span className="truncate">{task.title}</span>
+                          {isOverdue && (
+                            <span className="text-red-600 font-bold" title="Overdue">⚠</span>
+                          )}
+                          {!isOverdue && urgencyLevel === 'critical' && (
+                            <span className="text-red-500 font-bold" title="Critical urgency">🔥</span>
+                          )}
+                          {!isOverdue && urgencyLevel === 'urgent' && (
+                            <span className="text-orange-500 font-bold" title="Urgent">⚡</span>
+                          )}
+                        </div>
+                        {/* Mobile menu button - visible on small screens */}
+                        <button
+                          className="ml-1 text-gray-400 hover:text-gray-600 lg:hidden flex-shrink-0"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            const rect = e.currentTarget.getBoundingClientRect()
+                            setShowMobileMenu({
+                              task,
+                              x: rect.right,
+                              y: rect.bottom
+                            })
+                          }}
+                          aria-label="Tùy chọn task"
+                        >
+                          ⋮
+                        </button>
+                        {/* Desktop drag indicator */}
+                        <span className="text-gray-400 text-xs hidden lg:block">⋮⋮</span>
                       </div>
                     </div>
                   )
@@ -416,7 +485,7 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
             className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
           >
             <CheckIcon className="w-4 h-4 text-green-600" />
-            <span>Mark as Done</span>
+            <span>Hoàn thành</span>
           </button>
           <button
             onClick={() => {
@@ -428,7 +497,42 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
             </svg>
-            <span>Edit Task</span>
+            <span>Chỉnh sửa</span>
+          </button>
+        </div>
+      )}
+
+      {/* Mobile Menu */}
+      {showMobileMenu && (
+        <div
+          className="fixed bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 z-50"
+          style={{
+            left: showMobileMenu.x,
+            top: showMobileMenu.y,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            onClick={() => {
+              handleMarkAsDone(showMobileMenu.task)
+              setShowMobileMenu(null)
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+          >
+            <CheckIcon className="w-4 h-4 text-green-600" />
+            <span>Hoàn thành</span>
+          </button>
+          <button
+            onClick={() => {
+              setEditingTask(showMobileMenu.task)
+              setShowMobileMenu(null)
+            }}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <span>Chỉnh sửa</span>
           </button>
         </div>
       )}

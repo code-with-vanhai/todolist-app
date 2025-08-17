@@ -3,7 +3,8 @@ import { Task, Priority, TaskStatus } from '../../types'
 import { useTaskStore } from '../../stores/taskStore'
 import { useAuthStore } from '../../stores/authStore'
 import { useGroupStore } from '../../stores/groupStore'
-import { XMarkIcon } from '@heroicons/react/24/outline'
+import { Modal } from '../ui/Modal'
+import { useToast } from '../ui/Toast'
 import LoadingSpinner from '../ui/LoadingSpinner'
 import { debugLog, debugError } from '../../utils/debug'
 
@@ -19,6 +20,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
   const { groups, fetchGroups, getDefaultGroup } = useGroupStore()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const { showToast } = useToast()
 
   const [formData, setFormData] = useState({
     title: task?.title || '',
@@ -73,12 +75,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
       }
 
       debugLog('Task operation completed successfully')
+      showToast(task ? 'Cập nhật task thành công' : 'Tạo task thành công', 'success')
       onSuccess?.()
       onClose()
     } catch (err: any) {
-      const errorMessage = err.message || 'An error occurred'
+      const errorMessage = err.message || 'Có lỗi xảy ra'
       debugError('Task creation/update failed', err)
       setError(errorMessage)
+      showToast(errorMessage, 'error')
     } finally {
       setLoading(false)
     }
@@ -89,21 +93,13 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white dark:bg-gray-800">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-            {task ? 'Edit Task' : 'Create New Task'}
-          </h3>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-          >
-            <XMarkIcon className="w-6 h-6" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal 
+      isOpen={true} 
+      onClose={onClose} 
+      title={task ? 'Chỉnh sửa Task' : 'Tạo Task mới'}
+      className="max-w-lg"
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
             <div className="text-red-600 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded">
               {error}
@@ -112,7 +108,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Title *
+              Tiêu đề *
             </label>
             <input
               type="text"
@@ -120,26 +116,34 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
               value={formData.title}
               onChange={(e) => handleChange('title', e.target.value)}
               className="input-field"
-              placeholder="Enter task title"
+              placeholder="Nhập tiêu đề task"
+              maxLength={200}
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {formData.title.length}/200 ký tự
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Description
+              Mô tả
             </label>
             <textarea
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               className="input-field"
               rows={3}
-              placeholder="Enter task description"
+              placeholder="Nhập mô tả task"
+              maxLength={1000}
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {formData.description.length}/1000 ký tự
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Start Date
+              Ngày bắt đầu
             </label>
             <input
               type="date"
@@ -147,11 +151,14 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
               onChange={(e) => handleChange('startDate', e.target.value)}
               className="input-field"
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Ngày bắt đầu thực hiện task
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Due Date
+              Hạn hoàn thành
             </label>
             <input
               type="date"
@@ -160,56 +167,68 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
               className="input-field"
               min={formData.startDate || undefined}
             />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Ngày cần hoàn thành task
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Priority
+              Độ ưu tiên
             </label>
             <select
               value={formData.priority}
               onChange={(e) => handleChange('priority', e.target.value as Priority)}
               className="input-field"
             >
-              <option value={Priority.LOW}>Low</option>
-              <option value={Priority.MEDIUM}>Medium</option>
-              <option value={Priority.HIGH}>High</option>
-              <option value={Priority.URGENT}>Urgent</option>
+              <option value={Priority.LOW}>Thấp</option>
+              <option value={Priority.MEDIUM}>Trung bình</option>
+              <option value={Priority.HIGH}>Cao</option>
+              <option value={Priority.URGENT}>Khẩn cấp</option>
             </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Mức độ quan trọng của task
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Status
+              Trạng thái
             </label>
             <select
               value={formData.status}
               onChange={(e) => handleChange('status', e.target.value as TaskStatus)}
               className="input-field"
             >
-              <option value={TaskStatus.TODO}>To Do</option>
-              <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
-              <option value={TaskStatus.COMPLETED}>Completed</option>
-              <option value={TaskStatus.CANCELLED}>Cancelled</option>
+              <option value={TaskStatus.TODO}>Chưa làm</option>
+              <option value={TaskStatus.IN_PROGRESS}>Đang làm</option>
+              <option value={TaskStatus.COMPLETED}>Hoàn thành</option>
+              <option value={TaskStatus.CANCELLED}>Đã hủy</option>
             </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Tình trạng hiện tại của task
+            </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Group
+              Nhóm
             </label>
             <select
               value={formData.groupId}
               onChange={(e) => handleChange('groupId', e.target.value)}
               className="input-field"
             >
-              <option value="">Default Group</option>
+              <option value="">Nhóm mặc định</option>
               {groups.map((group) => (
                 <option key={group.id} value={group.id}>
                   {group.icon} {group.name}
                 </option>
               ))}
             </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Phân loại task theo nhóm
+            </p>
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">
@@ -234,8 +253,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   )
 }
 

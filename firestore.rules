@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isSignedIn() { 
+      return request.auth != null; 
+    }
+    
+    function isOwner(userId) { 
+      return isSignedIn() && request.auth.uid == userId; 
+    }
+    
+    // Đổi tên tham số, dùng kiểm tra kiểu đúng
+    function isValidTimestamp(value) {
+      return value is timestamp;
+    }
+    
+    function hasRequiredTimestamps() {
+      return request.resource.data.keys().hasAll(['createdAt', 'updatedAt'])
+        && isValidTimestamp(request.resource.data.createdAt)
+        && isValidTimestamp(request.resource.data.updatedAt);
+    }
+
+    match /users/{userId} {
+      // User preferences
+      match /settings/preferences {
+        allow read, create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly(['theme', 'updatedAt'])
+          && request.resource.data.theme in ['light', 'dark']
+          && isValidTimestamp(request.resource.data.updatedAt);
+      }
+
+      // Groups collection
+      match /groups/{groupId} {
+        allow read: if isOwner(userId);
+        
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly(['name', 'color', 'icon', 'createdAt', 'updatedAt'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 100
+          && request.resource.data.color is string
+          && request.resource.data.color.matches('^#[0-9A-Fa-f]{6}$')
+          && request.resource.data.icon is string
+          && request.resource.data.icon.size() <= 10
+          && hasRequiredTimestamps();
+        
+        allow delete: if isOwner(userId);
+      }
+
+      // Tasks collection  
+      match /tasks/{taskId} {
+        allow read: if isOwner(userId);
+        
+        allow create, update: if isOwner(userId)
+          && request.resource.data.keys().hasOnly([
+              'title', 'description', 'startDate', 'dueDate',
+              'priority', 'status', 'groupId', 'createdAt', 'updatedAt',
+              'isCompleted', 'completedAt'
+             ])
+          && request.resource.data.title is string
+          && request.resource.data.title.size() > 0
+          && request.resource.data.title.size() <= 200
+          && (!('description' in request.resource.data) || 
+              (request.resource.data.description is string && request.resource.data.description.size() <= 1000))
+          && request.resource.data.priority in ['low', 'medium', 'high', 'urgent']
+          && request.resource.data.status in ['todo', 'in-progress', 'completed', 'cancelled']
+          && request.resource.data.isCompleted is bool
+          && (!('groupId' in request.resource.data) || 
+              request.resource.data.groupId == 'default' ||
+              exists(/databases/$(database)/documents/users/$(userId)/groups/$(request.resource.data.groupId)))
+          && hasRequiredTimestamps();
+        
+        allow delete: if isOwner(userId);
+      }
+    }
+  }
+}

@@ -11,10 +11,12 @@ import {
   Timestamp,
   DocumentData,
   QuerySnapshot,
+  serverTimestamp,
 } from 'firebase/firestore'
 import { db } from './firebase'
 import { Task, TaskStatus, Priority } from '../types'
 import { debugLog, debugError } from '../utils/debug'
+import { getFirebaseErrorMessage } from '../utils/errorHandler'
 
 // Firestore data conversion utilities
 export const taskToFirestore = (task: Omit<Task, 'id' | 'userId'>) => {
@@ -22,8 +24,9 @@ export const taskToFirestore = (task: Omit<Task, 'id' | 'userId'>) => {
     ...task,
     startDate: task.startDate ? Timestamp.fromDate(task.startDate) : null,
     dueDate: task.dueDate ? Timestamp.fromDate(task.dueDate) : null,
-    createdAt: Timestamp.fromDate(task.createdAt),
-    updatedAt: Timestamp.fromDate(task.updatedAt),
+    // Remove client timestamps - will be set by server
+    createdAt: task.createdAt ? Timestamp.fromDate(task.createdAt) : serverTimestamp(),
+    updatedAt: serverTimestamp(),
     completedAt: task.completedAt ? Timestamp.fromDate(task.completedAt) : null,
   }
 }
@@ -34,11 +37,11 @@ export const firestoreToTask = (doc: DocumentData, userId: string): Task => {
     id: doc.id,
     userId,
     ...data,
-    startDate: data.startDate?.toDate() || null,
-    dueDate: data.dueDate?.toDate() || null,
-    createdAt: data.createdAt.toDate(),
-    updatedAt: data.updatedAt.toDate(),
-    completedAt: data.completedAt?.toDate() || null,
+    startDate: data.startDate?.toDate?.() || null,
+    dueDate: data.dueDate?.toDate?.() || null,
+    createdAt: data.createdAt?.toDate?.() || new Date(), // Defensive read
+    updatedAt: data.updatedAt?.toDate?.() || new Date(),
+    completedAt: data.completedAt?.toDate?.() || null,
   }
 }
 
@@ -52,14 +55,15 @@ export class TaskService {
     try {
       debugLog('TaskService: Creating task', { userId, taskData })
       
-      const now = new Date()
-      const task = {
+      const firestoreData = {
         ...taskData,
-        createdAt: now,
-        updatedAt: now,
+        startDate: taskData.startDate ? Timestamp.fromDate(taskData.startDate) : null,
+        dueDate: taskData.dueDate ? Timestamp.fromDate(taskData.dueDate) : null,
+        completedAt: taskData.completedAt ? Timestamp.fromDate(taskData.completedAt) : null,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
       }
-
-      const firestoreData = taskToFirestore(task)
+      
       debugLog('TaskService: Firestore data', firestoreData)
       
       const docRef = await addDoc(this.getTasksCollection(userId), firestoreData)
@@ -68,7 +72,8 @@ export class TaskService {
       return { id: docRef.id, error: null }
     } catch (error: any) {
       debugError('TaskService: Create task failed', error)
-      return { id: null, error: error.message }
+      const friendlyError = getFirebaseErrorMessage(error)
+      return { id: null, error: friendlyError }
     }
   }
 
@@ -92,7 +97,7 @@ export class TaskService {
       
       const updateData: any = {
         ...cleanUpdates,
-        updatedAt: Timestamp.fromDate(new Date()),
+        updatedAt: serverTimestamp(),
       }
 
       // Handle date fields specifically
@@ -116,7 +121,8 @@ export class TaskService {
       return { error: null }
     } catch (error: any) {
       debugError('TaskService: Update task failed', error)
-      return { error: error.message }
+      const friendlyError = getFirebaseErrorMessage(error)
+      return { error: friendlyError }
     }
   }
 
@@ -127,7 +133,8 @@ export class TaskService {
       await deleteDoc(taskRef)
       return { error: null }
     } catch (error: any) {
-      return { error: error.message }
+      const friendlyError = getFirebaseErrorMessage(error)
+      return { error: friendlyError }
     }
   }
 
@@ -142,7 +149,8 @@ export class TaskService {
 
       return await this.updateTask(userId, taskId, updates)
     } catch (error: any) {
-      return { error: error.message }
+      const friendlyError = getFirebaseErrorMessage(error)
+      return { error: friendlyError }
     }
   }
 
