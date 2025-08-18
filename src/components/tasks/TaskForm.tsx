@@ -97,7 +97,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
       isOpen={true} 
       onClose={onClose} 
       title={task ? 'Chỉnh sửa Task' : 'Tạo Task mới'}
-      className="max-w-lg"
+      className="max-w-4xl"
     >
       <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
@@ -106,7 +106,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
             </div>
           )}
 
-          <div>
+          {/* Tiêu đề - full width */}
+          <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Tiêu đề *
             </label>
@@ -124,7 +125,8 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
             </p>
           </div>
 
-          <div>
+          {/* Mô tả - full width */}
+          <div className="col-span-2">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Mô tả
             </label>
@@ -132,7 +134,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
               className="input-field"
-              rows={3}
+              rows={2}
               placeholder="Nhập mô tả task"
               maxLength={1000}
             />
@@ -141,104 +143,114 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Ngày bắt đầu
-            </label>
-            <input
-              type="date"
-              value={formData.startDate}
-              onChange={(e) => handleChange('startDate', e.target.value)}
-              className="input-field"
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Ngày bắt đầu thực hiện task
-            </p>
+          {/* Grid layout cho các trường còn lại */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Ngày bắt đầu */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Ngày bắt đầu
+              </label>
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => handleChange('startDate', e.target.value)}
+                className="input-field"
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Ngày bắt đầu thực hiện
+              </p>
+            </div>
+
+            {/* Hạn hoàn thành */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Hạn hoàn thành
+              </label>
+              <input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => handleChange('dueDate', e.target.value)}
+                className="input-field"
+                min={formData.startDate || undefined}
+              />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Ngày cần hoàn thành
+              </p>
+            </div>
+
+            {/* Độ ưu tiên */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Độ ưu tiên
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) => handleChange('priority', e.target.value as Priority)}
+                className="input-field"
+              >
+                <option value={Priority.LOW}>🟢 Thấp</option>
+                <option value={Priority.MEDIUM}>🟡 Trung bình</option>
+                <option value={Priority.HIGH}>🟠 Cao</option>
+                <option value={Priority.URGENT}>🔴 Khẩn cấp</option>
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Mức độ quan trọng
+              </p>
+            </div>
+
+            {/* Trạng thái */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Trạng thái
+              </label>
+              <select
+                value={formData.status}
+                onChange={(e) => handleChange('status', e.target.value as TaskStatus)}
+                className="input-field"
+              >
+                <option value={TaskStatus.TODO}>📝 Chưa làm</option>
+                <option value={TaskStatus.IN_PROGRESS}>⚡ Đang làm</option>
+                <option value={TaskStatus.COMPLETED}>✅ Hoàn thành</option>
+                <option value={TaskStatus.CANCELLED}>❌ Đã hủy</option>
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Tình trạng hiện tại
+              </p>
+            </div>
+
+            {/* Nhóm - span 2 columns on larger screens */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Nhóm
+              </label>
+              <select
+                value={formData.groupId}
+                onChange={(e) => handleChange('groupId', e.target.value)}
+                className="input-field"
+              >
+                <option value="">📋 Nhóm mặc định</option>
+                {groups
+                  .filter(group => group.name !== 'Default' && group.name !== 'Nhóm mặc định')
+                  .map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.icon} {group.name}
+                    </option>
+                  ))}
+              </select>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                Phân loại task theo nhóm
+              </p>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Hạn hoàn thành
-            </label>
-            <input
-              type="date"
-              value={formData.dueDate}
-              onChange={(e) => handleChange('dueDate', e.target.value)}
-              className="input-field"
-              min={formData.startDate || undefined}
-            />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Ngày cần hoàn thành task
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Độ ưu tiên
-            </label>
-            <select
-              value={formData.priority}
-              onChange={(e) => handleChange('priority', e.target.value as Priority)}
-              className="input-field"
-            >
-              <option value={Priority.LOW}>Thấp</option>
-              <option value={Priority.MEDIUM}>Trung bình</option>
-              <option value={Priority.HIGH}>Cao</option>
-              <option value={Priority.URGENT}>Khẩn cấp</option>
-            </select>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Mức độ quan trọng của task
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Trạng thái
-            </label>
-            <select
-              value={formData.status}
-              onChange={(e) => handleChange('status', e.target.value as TaskStatus)}
-              className="input-field"
-            >
-              <option value={TaskStatus.TODO}>Chưa làm</option>
-              <option value={TaskStatus.IN_PROGRESS}>Đang làm</option>
-              <option value={TaskStatus.COMPLETED}>Hoàn thành</option>
-              <option value={TaskStatus.CANCELLED}>Đã hủy</option>
-            </select>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Tình trạng hiện tại của task
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Nhóm
-            </label>
-            <select
-              value={formData.groupId}
-              onChange={(e) => handleChange('groupId', e.target.value)}
-              className="input-field"
-            >
-              <option value="">Nhóm mặc định</option>
-              {groups.map((group) => (
-                <option key={group.id} value={group.id}>
-                  {group.icon} {group.name}
-                </option>
-              ))}
-            </select>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              Phân loại task theo nhóm
-            </p>
-          </div>
-
-          <div className="flex justify-end space-x-3 pt-4">
+          <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
               className="btn-secondary"
               disabled={loading}
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
@@ -248,7 +260,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
               {loading ? (
                 <LoadingSpinner size="sm" />
               ) : (
-                task ? 'Update Task' : 'Create Task'
+                task ? 'Cập nhật Task' : 'Tạo Task'
               )}
             </button>
           </div>

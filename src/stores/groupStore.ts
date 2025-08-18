@@ -126,7 +126,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
   
   getDefaultGroup: () => {
     const { groups } = get()
-    return groups.find(group => group.name === 'Default') || {
+    return groups.find(group => group.name === 'Default' || group.name === 'Nhóm mặc định') || {
       id: 'default',
       name: 'Default',
       color: '#6B7280',

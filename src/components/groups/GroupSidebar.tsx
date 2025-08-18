@@ -33,10 +33,11 @@ const GroupSidebar = () => {
   }
 
   const getDefaultTaskCount = () => {
-    // Count tasks with no group AND tasks assigned to the "Default" group
-    const defaultGroup = groups.find(group => group.name === 'Default')
+    // Count tasks with no group AND tasks assigned to any default group
+    const defaultGroups = groups.filter(group => group.name === 'Default' || group.name === 'Nhóm mặc định')
+    const defaultGroupIds = defaultGroups.map(g => g.id)
     return tasks.filter(task => 
-      !task.groupId || (defaultGroup && task.groupId === defaultGroup.id)
+      !task.groupId || defaultGroupIds.includes(task.groupId)
     ).length
   }
 
@@ -121,7 +122,7 @@ const GroupSidebar = () => {
           </button>
 
           {/* Custom Groups */}
-          {groups.filter(group => group.name !== 'Default').map((group) => (
+          {groups.filter(group => group.name !== 'Default' && group.name !== 'Nhóm mặc định').map((group) => (
             <div key={group.id} className="group relative">
               <button
                 onClick={() => handleGroupClick(group.id)}
@@ -142,29 +143,31 @@ const GroupSidebar = () => {
                 </div>
               </button>
               
-              {/* Group Actions (visible on hover) */}
-              <div className="absolute right-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-0.5 bg-white dark:bg-gray-800 rounded shadow-sm">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleEditGroup(group)
-                  }}
-                  className="p-1 text-gray-400 hover:text-blue-600 rounded"
-                  aria-label={`Chỉnh sửa nhóm ${group.name}`}
-                >
-                  <PencilIcon className="w-3 h-3" />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleDeleteGroup(group.id)
-                  }}
-                  className="p-1 text-gray-400 hover:text-red-600 rounded"
-                  aria-label={`Xóa nhóm ${group.name}`}
-                >
-                  <TrashIcon className="w-3 h-3" />
-                </button>
-              </div>
+              {/* Group Actions (visible on hover) - Hide for default groups */}
+              {!(group.name === 'Default' || group.name === 'Nhóm mặc định') && (
+                <div className="absolute right-8 top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-0.5 bg-white dark:bg-gray-800 rounded shadow-sm">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleEditGroup(group)
+                    }}
+                    className="p-1 text-gray-400 hover:text-blue-600 rounded"
+                    aria-label={`Chỉnh sửa nhóm ${group.name}`}
+                  >
+                    <PencilIcon className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDeleteGroup(group.id)
+                    }}
+                    className="p-1 text-gray-400 hover:text-red-600 rounded"
+                    aria-label={`Xóa nhóm ${group.name}`}
+                  >
+                    <TrashIcon className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

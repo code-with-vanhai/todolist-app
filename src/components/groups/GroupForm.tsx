@@ -36,6 +36,21 @@ const GroupForm: React.FC<GroupFormProps> = ({ group, onClose, onSuccess }) => {
       return
     }
 
+    // Prevent creating/editing groups with default names (except if it's already a default group)
+    const trimmedName = formData.name.trim()
+    const isDefaultGroup = group && (group.name === 'Default' || group.name === 'Nhóm mặc định')
+    
+    if (!isDefaultGroup && (trimmedName === 'Default' || trimmedName === 'Nhóm mặc định')) {
+      setError('Không thể tạo nhóm với tên "Default" hoặc "Nhóm mặc định". Vui lòng chọn tên khác.')
+      return
+    }
+    
+    // If editing a default group, prevent changing the name
+    if (isDefaultGroup && trimmedName !== group.name) {
+      setError('Không thể thay đổi tên của nhóm mặc định.')
+      return
+    }
+
     setLoading(true)
     setError('')
 
