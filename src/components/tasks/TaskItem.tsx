@@ -65,14 +65,27 @@ const TaskItem: React.FC<TaskItemProps> = ({ task }) => {
   const handleToggleCompletion = async () => {
     if (!user) return
     setLoading(true)
+    
+    const newCompletionState = !task.isCompleted
+    console.log('🔄 Toggling task completion:', {
+      taskId: task.id,
+      title: task.title,
+      currentState: task.isCompleted,
+      newState: newCompletionState,
+      isOverdue: isOverdue,
+      dueDate: task.dueDate,
+      status: task.status
+    })
+    
     try {
-      await toggleTaskCompletion(user.uid, task.id, !task.isCompleted)
+      await toggleTaskCompletion(user.uid, task.id, newCompletionState)
       showToast(
         task.isCompleted ? 'Đã đánh dấu task chưa hoàn thành' : 'Đã hoàn thành task!', 
         'success'
       )
     } catch (error: any) {
-      showToast('Có lỗi xảy ra khi cập nhật task', 'error')
+      console.error('❌ Error toggling task completion:', error)
+      showToast(`Có lỗi xảy ra: ${error.message}`, 'error')
     } finally {
       setLoading(false)
     }

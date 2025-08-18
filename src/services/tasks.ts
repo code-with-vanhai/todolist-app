@@ -141,14 +141,26 @@ export class TaskService {
   // Toggle task completion
   async toggleTaskCompletion(userId: string, taskId: string, isCompleted: boolean) {
     try {
+      debugLog('TaskService: Toggling task completion', { userId, taskId, isCompleted })
+      
       const updates: Partial<Task> = {
         isCompleted,
         status: isCompleted ? TaskStatus.COMPLETED : TaskStatus.TODO,
         completedAt: isCompleted ? new Date() : null,
       }
 
-      return await this.updateTask(userId, taskId, updates)
+      debugLog('TaskService: Update data for toggle', updates)
+      const result = await this.updateTask(userId, taskId, updates)
+      
+      if (result.error) {
+        debugError('TaskService: Toggle completion failed', result.error)
+      } else {
+        debugLog('TaskService: Toggle completion successful')
+      }
+      
+      return result
     } catch (error: any) {
+      debugError('TaskService: Toggle completion exception', error)
       const friendlyError = getFirebaseErrorMessage(error)
       return { error: friendlyError }
     }

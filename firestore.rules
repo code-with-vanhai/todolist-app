@@ -52,12 +52,8 @@ service cloud.firestore {
       match /tasks/{taskId} {
         allow read: if isOwner(userId);
         
-        allow create, update: if isOwner(userId)
-          && request.resource.data.keys().hasOnly([
-              'title', 'description', 'startDate', 'dueDate',
-              'priority', 'status', 'groupId', 'createdAt', 'updatedAt',
-              'isCompleted', 'completedAt'
-             ])
+        allow create: if isOwner(userId)
+          && request.resource.data.keys().hasAll(['title', 'priority', 'status', 'isCompleted', 'createdAt', 'updatedAt'])
           && request.resource.data.title is string
           && request.resource.data.title.size() > 0
           && request.resource.data.title.size() <= 200
@@ -70,6 +66,23 @@ service cloud.firestore {
               request.resource.data.groupId == 'default' ||
               exists(/databases/$(database)/documents/users/$(userId)/groups/$(request.resource.data.groupId)))
           && hasRequiredTimestamps();
+          
+        allow update: if isOwner(userId)
+          && request.resource.data.keys().hasAll(['updatedAt'])
+          && isValidTimestamp(request.resource.data.updatedAt)
+          && (!('title' in request.resource.data) || 
+              (request.resource.data.title is string && request.resource.data.title.size() > 0 && request.resource.data.title.size() <= 200))
+          && (!('description' in request.resource.data) || 
+              (request.resource.data.description is string && request.resource.data.description.size() <= 1000))
+          && (!('priority' in request.resource.data) || 
+              request.resource.data.priority in ['low', 'medium', 'high', 'urgent'])
+          && (!('status' in request.resource.data) || 
+              request.resource.data.status in ['todo', 'in-progress', 'completed', 'cancelled'])
+          && (!('isCompleted' in request.resource.data) || 
+              request.resource.data.isCompleted is bool)
+          && (!('groupId' in request.resource.data) || 
+              request.resource.data.groupId == 'default' ||
+              exists(/databases/$(database)/documents/users/$(userId)/groups/$(request.resource.data.groupId)));
         
         allow delete: if isOwner(userId);
       }

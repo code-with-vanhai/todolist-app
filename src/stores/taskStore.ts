@@ -99,12 +99,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   
   updateTask: async (userId, taskId, updates) => {
     try {
+      debugLog('TaskStore: Updating task', { userId, taskId, updates })
       const result = await taskService.updateTask(userId, taskId, updates)
       if (result.error) {
+        debugError('TaskStore: Update task failed', result.error)
         set({ error: result.error })
+        throw new Error(result.error)
       }
+      debugLog('TaskStore: Update task successful')
     } catch (error: any) {
+      debugError('TaskStore: Update task exception', error)
       set({ error: error.message })
+      throw error
     }
   },
   
@@ -113,38 +119,31 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       const result = await taskService.deleteTask(userId, taskId)
       if (result.error) {
         set({ error: result.error })
+        throw new Error(result.error)
       }
     } catch (error: any) {
       set({ error: error.message })
+      throw error
     }
   },
   
   toggleTaskCompletion: async (userId, taskId, isCompleted) => {
-    // Optimistic update
-    const { tasks } = get()
-    const originalTasks = [...tasks]
-    const optimisticTasks = tasks.map(task => 
-      task.id === taskId 
-        ? { 
-            ...task, 
-            isCompleted, 
-            status: isCompleted ? TaskStatus.COMPLETED : TaskStatus.TODO,
-            completedAt: isCompleted ? new Date() : null 
-          }
-        : task
-    )
-    set({ tasks: optimisticTasks })
-
     try {
+      // Tắt optimistic update để tránh race condition
+      debugLog('TaskStore: Toggling task completion', { taskId, isCompleted })
+      
       const result = await taskService.toggleTaskCompletion(userId, taskId, isCompleted)
       if (result.error) {
-        // Rollback on error
-        set({ tasks: originalTasks, error: result.error })
+        debugError('TaskStore: Toggle completion failed', result.error)
+        set({ error: result.error })
         throw new Error(result.error)
       }
+      
+      debugLog('TaskStore: Toggle completion successful')
+      // Real-time listener sẽ tự động update UI
     } catch (error: any) {
-      // Rollback optimistic update
-      set({ tasks: originalTasks, error: error.message })
+      debugError('TaskStore: Toggle completion exception', error)
+      set({ error: error.message })
       throw error
     }
   },
