@@ -1,298 +1,385 @@
-# Todo List App
+# 📝 TodoList App
 
-A modern, responsive todo list application built with React, TypeScript, and Firebase, deployed on GitHub Pages.
+<div align="center">
 
-## 🚀 Features
+![TodoList App](https://img.shields.io/badge/React-18.2.0-blue?style=for-the-badge&logo=react)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.2.2-blue?style=for-the-badge&logo=typescript)
+![Firebase](https://img.shields.io/badge/Firebase-10.7.1-orange?style=for-the-badge&logo=firebase)
+![Tailwind](https://img.shields.io/badge/Tailwind-3.3.6-cyan?style=for-the-badge&logo=tailwindcss)
 
-### **Core Features**
-- **Authentication**: Email/password and Google sign-in with friendly error messages
-- **Task Management**: Create, edit, delete, and organize tasks with real-time sync
-- **Group Organization**: Custom groups with icons and colors for task categorization
-- **Advanced Filtering**: Filter by status, priority, groups, and search functionality
-- **Calendar View**: Interactive calendar with drag-and-drop task scheduling
-- **Priority Levels**: Set task priorities (Low, Medium, High, Urgent) with visual indicators
+**A modern, feature-rich task management application with real-time sync and beautiful UI**
 
-### **User Experience**
-- **Responsive Design**: Optimized for desktop, tablet, and mobile devices
-- **Dark Mode**: Toggle between light and dark themes with system preference detection
-- **Accessibility**: WCAG compliant with ARIA labels, keyboard navigation, and screen reader support
-- **Mobile-Friendly**: Touch interactions, long-press menus, and mobile-optimized interfaces
-- **Toast Notifications**: Real-time feedback for all user actions
-- **Optimistic UI**: Instant visual feedback with automatic rollback on errors
+[🚀 Live Demo](https://akabara.github.io/todolist-app) • [📖 Setup Guide](SETUP_GUIDE.md) • [🐛 Report Bug](https://github.com/akabara/todolist-app/issues)
 
-### **Performance & Security**
-- **Lazy Loading**: Code-splitting for faster initial load times
-- **Skeleton Loading**: Smooth loading states instead of spinners
-- **Server-side Timestamps**: Tamper-proof data integrity
-- **Firestore Security Rules**: Comprehensive data protection and validation
-- **App Check Ready**: Optional bot protection with reCAPTCHA v3 integration
+</div>
 
-## 🛠️ Tech Stack
+---
 
-- **Frontend**: React 18 + TypeScript + Vite
-- **Styling**: Tailwind CSS + Headless UI
-- **Backend**: Firebase (Authentication + Firestore + App Check)
-- **State Management**: Zustand
-- **Routing**: React Router (HashRouter for GitHub Pages)
-- **Icons**: Heroicons
-- **UI Components**: Custom accessible components (Modal, Toast, Skeleton)
-- **Deployment**: GitHub Pages with GitHub Actions
-- **Security**: Firestore Security Rules + Server-side Timestamps
+## ✨ Features Overview
 
-## 🏗️ Setup Instructions
+<table>
+<tr>
+<td width="50%">
 
-### Prerequisites
+### 🎯 **Task Management**
+- ✅ Create, edit, delete tasks
+- 🏷️ Priority levels (Low → Urgent)
+- 📅 Due dates with overdue alerts
+- 📝 Rich descriptions
+- 🔄 Real-time synchronization
 
-- Node.js 18+ 
-- npm or yarn
-- Firebase project
+</td>
+<td width="50%">
 
-### 1. Clone the repository
+### 📊 **Organization**
+- 📁 Custom groups with icons
+- 🔍 Smart filtering & search
+- 📈 Dashboard with statistics
+- 🎨 Color-coded priorities
+- 📱 Responsive design
 
-\`\`\`bash
-git clone https://github.com/yourusername/todolistapp.git
-cd todolistapp
-\`\`\`
+</td>
+</tr>
+<tr>
+<td width="50%">
 
-### 2. Install dependencies
+### 📅 **Calendar View**
+- 🗓️ Interactive calendar
+- 🖱️ Drag & drop tasks
+- 👁️ Multiple view modes
+- ⚠️ Overdue indicators
+- ⚡ Quick task creation
 
-\`\`\`bash
+</td>
+<td width="50%">
+
+### 🔐 **Security & Auth**
+- 🔒 Firebase Authentication
+- 🌐 Google Sign-in
+- 👤 User data isolation
+- 🛡️ Firestore security rules
+- 🔄 Offline support
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🚀 Quick Start
+
+### 📋 Prerequisites
+
+```bash
+Node.js 18+ ✅
+npm or yarn ✅
+Firebase account ✅
+```
+
+### ⚡ Installation (5 minutes)
+
+<details>
+<summary><b>🔥 Step 1: Clone & Install</b></summary>
+
+```bash
+# Clone repository
+git clone https://github.com/akabara/todolist-app.git
+cd todolist-app
+
+# Install dependencies
 npm install
-\`\`\`
+```
 
-### 3. Firebase Setup
+</details>
 
-1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Authentication (Email/Password and Google)
-3. Create a Firestore database
-4. Get your Firebase config from Project Settings
+<details>
+<summary><b>🔧 Step 2: Firebase Setup</b></summary>
 
-### 4. Environment Variables
+1. **Create Firebase Project**
+   - Go to [Firebase Console](https://console.firebase.google.com)
+   - Click "Create a project"
+   - Enable **Firestore Database** and **Authentication**
 
-Create a \`.env\` file in the root directory:
+2. **Get Configuration**
+   - Project Settings → General → Your apps
+   - Click Web app icon → Register app
+   - Copy the config object
 
-\`\`\`env
-VITE_FIREBASE_API_KEY=your_api_key
+3. **Enable Authentication**
+   - Authentication → Sign-in method
+   - Enable **Email/Password** and **Google**
+
+</details>
+
+<details>
+<summary><b>⚙️ Step 3: Environment Setup</b></summary>
+
+```bash
+# Copy environment template
+cp .env.example .env
+```
+
+Fill in your `.env` file:
+```env
+VITE_FIREBASE_API_KEY=your_api_key_here
 VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
 VITE_FIREBASE_PROJECT_ID=your_project_id
 VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
 VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
-VITE_FIREBASE_APP_ID=your_app_id
-\`\`\`
+VITE_FIREBASE_APP_ID=1:123456789:web:abcdef
+VITE_RECAPTCHA_SITE_KEY=your_recaptcha_key (optional)
+```
 
-### 5. Firestore Security Rules
+</details>
 
-**IMPORTANT**: Deploy the comprehensive security rules from `firestore.rules` file:
+<details>
+<summary><b>🛡️ Step 4: Deploy Security Rules</b></summary>
 
 ```bash
-# Using Firebase CLI (recommended)
+# Install Firebase CLI
+npm install -g firebase-tools
+
+# Login to Firebase
+firebase login
+
+# Initialize project (if not done)
+firebase init firestore
+
+# Deploy rules
 firebase deploy --only firestore:rules
-
-# Or copy the content of firestore.rules to Firebase Console
 ```
 
-The security rules include:
-- **User isolation**: Each user can only access their own data
-- **Field validation**: Strict validation for all data fields
-- **Schema enforcement**: Prevents invalid data structure
-- **Server timestamp requirements**: Ensures data integrity
-- **Group reference validation**: Validates group relationships
+</details>
 
-### 6. Optional: App Check (Bot Protection)
-
-App Check is **optional** and provides additional security against bots and abuse:
-
-```env
-# Add to .env only if you want App Check protection
-VITE_RECAPTCHA_SITE_KEY=your_recaptcha_site_key
-```
-
-**To get reCAPTCHA Site Key:**
-1. Visit [Google reCAPTCHA Console](https://www.google.com/recaptcha/admin)
-2. Create new site with reCAPTCHA v3
-3. Add your domains (yourusername.github.io, localhost)
-4. Copy the Site Key
-
-**Note**: The app works perfectly without App Check. Only add it if you need bot protection.
-
-### 7. Run Development Server
+<details>
+<summary><b>🎉 Step 5: Launch App</b></summary>
 
 ```bash
+# Start development server
 npm run dev
+
+# Open browser
+# Navigate to http://localhost:5173
 ```
 
-## 🚀 Deployment
-
-### GitHub Pages Deployment
-
-1. **Update repository configuration:**
-   ```typescript
-   // vite.config.ts - Update with your repository name
-   export default defineConfig({
-     base: '/your-repo-name/',
-     // ...
-   });
-   ```
-
-   ```json
-   // package.json - Update homepage
-   {
-     "homepage": "https://yourusername.github.io/your-repo-name"
-   }
-   ```
-
-2. **Add Firebase environment variables to GitHub Secrets:**
-   - Go to Repository Settings → Secrets and variables → Actions
-   - Add all required variables:
-     ```
-     VITE_FIREBASE_API_KEY
-     VITE_FIREBASE_AUTH_DOMAIN
-     VITE_FIREBASE_PROJECT_ID
-     VITE_FIREBASE_STORAGE_BUCKET
-     VITE_FIREBASE_MESSAGING_SENDER_ID
-     VITE_FIREBASE_APP_ID
-     VITE_RECAPTCHA_SITE_KEY (optional)
-     ```
-
-3. **Deploy Firestore Security Rules:**
-   ```bash
-   firebase deploy --only firestore:rules
-   ```
-
-4. **Push to main branch** - GitHub Actions will automatically deploy
-
-### Manual Deployment
-
-```bash
-npm run build
-npm run deploy
-```
-
-## 📱 Usage
-
-### **Getting Started**
-1. **Sign Up/Login**: Create an account with email/password or sign in with Google
-2. **Create Groups**: Organize tasks by creating custom groups with icons and colors
-3. **Add Tasks**: Click "New Task" to create tasks with title, description, dates, priority, and group
-4. **Calendar View**: Drag and drop tasks on the calendar to reschedule due dates
-
-### **Task Management**
-- **Quick Actions**: Click the checkbox to mark tasks complete (with instant feedback)
-- **Edit Tasks**: Double-click tasks or use the edit button
-- **Delete Tasks**: Use the delete button with confirmation dialog
-- **Mobile Support**: Long-press tasks on mobile for context menu
-
-### **Organization & Filtering**
-- **Groups**: Create custom groups to categorize tasks (Work, Personal, etc.)
-- **Filters**: Filter by status, priority, groups, or use search
-- **Calendar**: Visual overview with drag-and-drop scheduling
-- **Dashboard**: Statistics and overview of all tasks
-
-### **Accessibility Features**
-- **Keyboard Navigation**: Full keyboard support with Tab navigation
-- **Screen Reader**: ARIA labels and semantic HTML for screen readers
-- **Dark Mode**: Automatic system preference detection with manual toggle
-- **Mobile Optimized**: Touch-friendly interface with responsive design
-
-## 🔧 Development
-
-### Project Structure
-
-```
-src/
-├── components/          # React components
-│   ├── auth/           # Authentication components
-│   ├── tasks/          # Task management components
-│   ├── calendar/       # Calendar components
-│   ├── groups/         # Group management components
-│   └── ui/             # Reusable UI components (Modal, Toast, Skeleton)
-├── pages/              # Page components (lazy-loaded)
-├── services/           # API services (Firebase, App Check)
-├── stores/             # Zustand stores (state management)
-├── types/              # TypeScript type definitions
-├── utils/              # Utility functions (error handling, debug)
-└── index.css           # Global styles and animations
-```
-
-### Key Files
-- `firestore.rules` - Database security rules
-- `src/services/appCheck.ts` - Optional bot protection
-- `src/utils/errorHandler.ts` - User-friendly error messages
-- `src/components/ui/` - Accessible UI components
-
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run deploy` - Deploy to GitHub Pages
-- `npm run lint` - Run ESLint for code quality
-
-### Development Features
-
-- **Hot Reload**: Instant updates during development
-- **TypeScript**: Full type safety and IntelliSense
-- **ESLint**: Code quality and consistency checks
-- **Lazy Loading**: Automatic code splitting for better performance
-- **Debug Panel**: Development-only debugging tools
-
-## 🔒 Security Features
-
-### **Data Protection**
-- **Firestore Security Rules**: Comprehensive validation and user isolation
-- **Server-side Timestamps**: Tamper-proof data integrity
-- **Input Validation**: Client and server-side validation for all fields
-- **Error Sanitization**: User-friendly messages without technical exposure
-
-### **Authentication Security**
-- **Firebase Auth**: Industry-standard authentication
-- **Protected Routes**: Automatic redirection for unauthenticated users
-- **Session Management**: Secure token handling and refresh
-
-### **Optional Bot Protection**
-- **App Check**: reCAPTCHA v3 integration for production environments
-- **Rate Limiting**: Firebase built-in protection against abuse
-- **Domain Validation**: Restricted to authorized domains only
-
-## 🚀 Performance Optimizations
-
-- **Lazy Loading**: Code splitting for faster initial load
-- **Optimistic UI**: Instant feedback with automatic rollback
-- **Skeleton Loading**: Smooth loading states
-- **Real-time Updates**: Efficient Firestore listeners
-- **Caching**: Browser caching for static assets
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [React](https://reactjs.org/) - UI Framework
-- [Firebase](https://firebase.google.com/) - Backend Services
-- [Tailwind CSS](https://tailwindcss.com/) - Styling Framework
-- [Heroicons](https://heroicons.com/) - Icon Library
-- [Vite](https://vitejs.dev/) - Build Tool
-- [Zustand](https://github.com/pmndrs/zustand) - State Management
-- [Headless UI](https://headlessui.com/) - Accessible Components
+</details>
 
 ---
 
-## 📞 Support
+## 🏗️ Project Architecture
 
-If you encounter any issues or have questions:
+```
+📁 todolist-app/
+├── 🔧 src/
+│   ├── 🧩 components/          # Reusable UI components
+│   │   ├── 🔐 auth/           # Login, signup, protected routes
+│   │   ├── 📅 calendar/       # Calendar view & interactions
+│   │   ├── 📁 groups/         # Group management
+│   │   ├── ✅ tasks/          # Task CRUD operations
+│   │   └── 🎨 ui/             # Generic UI (modals, buttons, etc.)
+│   ├── 📄 pages/              # Main application pages
+│   ├── 🔥 services/           # Firebase & API integrations
+│   ├── 🗄️ stores/             # Zustand state management
+│   ├── 📝 types/              # TypeScript definitions
+│   └── 🛠️ utils/              # Helper functions
+├── 🔒 firestore.rules         # Database security rules
+├── ⚙️ .env.example            # Environment template
+└── 📦 package.json            # Dependencies & scripts
+```
 
-1. Check the [Issues](https://github.com/yourusername/todolist-app/issues) page
-2. Create a new issue with detailed description
-3. Include browser console errors if applicable
+---
 
-**Happy task managing! 🎉**
+## 🛠️ Tech Stack
 
+<div align="center">
+
+| Category | Technologies |
+|----------|-------------|
+| **Frontend** | ![React](https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black) ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat&logo=typescript&logoColor=white) ![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white) |
+| **Styling** | ![Tailwind](https://img.shields.io/badge/Tailwind-06B6D4?style=flat&logo=tailwindcss&logoColor=white) ![HeadlessUI](https://img.shields.io/badge/HeadlessUI-66E3FF?style=flat&logo=headlessui&logoColor=black) |
+| **Backend** | ![Firebase](https://img.shields.io/badge/Firebase-FFCA28?style=flat&logo=firebase&logoColor=black) ![Firestore](https://img.shields.io/badge/Firestore-FF6F00?style=flat&logo=firebase&logoColor=white) |
+| **State** | ![Zustand](https://img.shields.io/badge/Zustand-FF6B6B?style=flat&logo=zustand&logoColor=white) |
+| **Calendar** | ![React Big Calendar](https://img.shields.io/badge/React_Big_Calendar-61DAFB?style=flat&logo=react&logoColor=black) |
+
+</div>
+
+---
+
+## 📱 Screenshots & Features
+
+<details>
+<summary><b>🏠 Dashboard View</b></summary>
+
+- 📊 **Statistics Cards**: Total, completed, pending, overdue tasks
+- 🎯 **Quick Actions**: Create tasks and groups instantly
+- 📈 **Visual Progress**: Color-coded priority indicators
+- 🔍 **Smart Filters**: Filter by status, priority, groups
+
+</details>
+
+<details>
+<summary><b>✅ Task Management</b></summary>
+
+- ➕ **Create Tasks**: Rich form with all task properties
+- ✏️ **Edit Tasks**: Inline editing with real-time updates
+- 🏷️ **Priority System**: 4 levels with color coding
+- 📅 **Due Dates**: Calendar picker with overdue detection
+- 📁 **Group Assignment**: Organize tasks into custom groups
+
+</details>
+
+<details>
+<summary><b>📅 Calendar Integration</b></summary>
+
+- 🗓️ **Multiple Views**: Month, week, day, agenda
+- 🖱️ **Drag & Drop**: Move tasks between dates
+- 🎨 **Color Coding**: Visual priority and group indicators
+- ⚡ **Quick Actions**: Create/edit tasks directly on calendar
+- ⚠️ **Overdue Alerts**: Clear visual indicators
+
+</details>
+
+<details>
+<summary><b>📁 Group Management</b></summary>
+
+- 🎨 **Custom Groups**: Create with names, colors, icons
+- 📊 **Task Counting**: Automatic task count per group
+- 🔍 **Group Filtering**: Filter tasks by specific groups
+- 🗂️ **Default Group**: Built-in default group handling
+
+</details>
+
+---
+
+## 🚀 Development Commands
+
+```bash
+# 🔧 Development
+npm run dev          # Start dev server (http://localhost:5173)
+npm run build        # Build for production
+npm run preview      # Preview production build
+
+# 🧹 Code Quality
+npm run lint         # Run ESLint
+npm run type-check   # TypeScript checking
+
+# 🚀 Deployment
+npm run deploy       # Deploy to GitHub Pages
+firebase deploy      # Deploy to Firebase Hosting
+```
+
+---
+
+## 🌐 Deployment Options
+
+<table>
+<tr>
+<td width="33%">
+
+### 🐙 **GitHub Pages**
+```bash
+# Update package.json
+"homepage": "https://username.github.io/repo"
+
+# Deploy
+npm run deploy
+```
+
+</td>
+<td width="33%">
+
+### ⚡ **Vercel**
+```bash
+# Connect GitHub repo
+# Auto-deploy on push
+# Zero configuration
+```
+
+</td>
+<td width="33%">
+
+### 🔥 **Firebase Hosting**
+```bash
+firebase init hosting
+firebase deploy
+```
+
+</td>
+</tr>
+</table>
+
+---
+
+## 🔐 Security Features
+
+- 🛡️ **Firestore Rules**: Comprehensive data validation
+- 👤 **User Isolation**: Each user's data is completely separate
+- 🔒 **Authentication**: Firebase Auth with Google Sign-in
+- 🚫 **App Check**: Protection against abuse and unauthorized access
+- 🔄 **Real-time Security**: Rules enforced on every operation
+
+---
+
+## 🎨 Customization
+
+<details>
+<summary><b>🎨 Themes & Styling</b></summary>
+
+- 🌙 **Dark/Light Mode**: Automatic system preference detection
+- 🎨 **Custom Colors**: Modify `tailwind.config.js`
+- 🖼️ **Icons**: Heroicons with easy customization
+- 📱 **Responsive**: Mobile-first design approach
+
+</details>
+
+<details>
+<summary><b>⚙️ Configuration</b></summary>
+
+- 🔧 **Environment Variables**: Easy configuration via `.env`
+- 🏗️ **Build Settings**: Vite configuration in `vite.config.ts`
+- 📦 **Dependencies**: Modern package management
+- 🔄 **Hot Reload**: Instant development feedback
+
+</details>
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+1. 🍴 **Fork** the repository
+2. 🌿 **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. 💾 **Commit** your changes (`git commit -m 'Add amazing feature'`)
+4. 📤 **Push** to the branch (`git push origin feature/amazing-feature`)
+5. 🔄 **Open** a Pull Request
+
+---
+
+## 📞 Support & Community
+
+<div align="center">
+
+[![Issues](https://img.shields.io/github/issues/akabara/todolist-app?style=for-the-badge)](https://github.com/akabara/todolist-app/issues)
+[![Stars](https://img.shields.io/github/stars/akabara/todolist-app?style=for-the-badge)](https://github.com/akabara/todolist-app/stargazers)
+[![License](https://img.shields.io/github/license/akabara/todolist-app?style=for-the-badge)](LICENSE)
+
+**Need help?** [Create an issue](https://github.com/akabara/todolist-app/issues) • **Found a bug?** [Report it](https://github.com/akabara/todolist-app/issues/new)
+
+</div>
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+---
+
+<div align="center">
+
+**Made with ❤️ by developers, for developers**
+
+⭐ **Star this repo if you found it helpful!** ⭐
+
+</div>
