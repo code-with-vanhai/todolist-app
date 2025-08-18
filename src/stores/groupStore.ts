@@ -110,10 +110,12 @@ export const useGroupStore = create<GroupState>((set, get) => ({
       const result = await groupService.deleteGroup(userId, groupId)
       if (result.error) {
         set({ error: result.error })
+        throw new Error(result.error)
       }
     } catch (error: any) {
       const friendlyError = getFirebaseErrorMessage(error)
       set({ error: friendlyError })
+      throw error
     }
   },
   

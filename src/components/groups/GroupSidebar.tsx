@@ -61,12 +61,8 @@ const GroupSidebar = () => {
       `Bạn có chắc chắn muốn xóa nhóm "${group?.name}"? ${taskCount > 0 ? `${taskCount} task(s) sẽ được chuyển về nhóm Default.` : ''}`,
       async () => {
         try {
-          const result = await deleteGroup(user.uid, groupId)
-          if (result.error) {
-            showToast(result.error, 'error')
-          } else {
-            showToast(`Đã xóa nhóm "${group?.name}" thành công`, 'success')
-          }
+          await deleteGroup(user.uid, groupId)
+          showToast(`Đã xóa nhóm "${group?.name}" thành công`, 'success')
         } catch (error: any) {
           showToast('Có lỗi xảy ra khi xóa nhóm', 'error')
         }
