@@ -51,18 +51,12 @@ export class GroupService {
       const groupsRef = collection(db, 'users', userId, 'groups')
       const snapshot = await getDocs(groupsRef)
       
-      let existingDefaultGroup = null
-      snapshot.forEach(doc => {
-        const data = doc.data()
+      for (const docSnapshot of snapshot.docs) {
+        const data = docSnapshot.data()
         if (data.name === 'Default' || data.name === 'Nhóm mặc định') {
-          existingDefaultGroup = { id: doc.id, ...data }
+          debugLog('GroupService: Default group already exists', docSnapshot.id)
+          return docSnapshot.id
         }
-      })
-      
-      // If a default group already exists, return its ID
-      if (existingDefaultGroup) {
-        debugLog('GroupService: Default group already exists', existingDefaultGroup.id)
-        return existingDefaultGroup.id
       }
       
       // Only create if no default group exists
