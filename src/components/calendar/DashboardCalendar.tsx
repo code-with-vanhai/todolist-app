@@ -35,7 +35,7 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
   const [showDayTasksModal, setShowDayTasksModal] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const { user } = useAuthStore()
-  const { getGroupById, getDefaultGroup } = useGroupStore()
+  const { getGroupById } = useGroupStore()
   const { filters, toggleTaskCompletion, updateTask } = useTaskStore()
 
   // Filter tasks based on selected group
@@ -377,7 +377,6 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
               <div className="space-y-1">
                 {dayTasksInfo.slice(0, 4).map((taskInfo) => {
                   const { task, isOverdue, urgencyLevel } = taskInfo
-                  const group = task.groupId ? getGroupById(task.groupId) : getDefaultGroup()
                   const displayPriority = getTaskDisplayPriority(task, urgencyLevel)
                   
                   // Get background color based on urgency and overdue status
