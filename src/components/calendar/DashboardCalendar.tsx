@@ -403,7 +403,11 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
                           ? 'opacity-50 scale-95'
                           : ''
                       }`}
-                      title={`${task.title} - ${group?.name || 'Default'} ${isOverdue ? '(OVERDUE)' : urgencyLevel === 'critical' ? '(CRITICAL)' : urgencyLevel === 'urgent' ? '(URGENT)' : ''}`}
+                      title={`📋 ${task.title}
+📊 Status: ${task.status.replace('-', ' ')}
+${task.dueDate ? `📅 Due: ${task.dueDate.toLocaleDateString('vi-VN')}` : '📅 Due: Not set'}
+${task.startDate ? `🚀 Start: ${task.startDate.toLocaleDateString('vi-VN')}` : '🚀 Start: Not set'}
+${isOverdue ? '⚠️ OVERDUE' : urgencyLevel === 'critical' ? '🔥 CRITICAL' : urgencyLevel === 'urgent' ? '⚡ URGENT' : ''}`}
                       onDragStart={(e) => {
                         e.stopPropagation()
                         handleDragStart(e, task)
