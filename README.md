@@ -7,12 +7,26 @@
 ![Firebase](https://img.shields.io/badge/Firebase-10.7.1-orange?style=for-the-badge&logo=firebase)
 ![Tailwind](https://img.shields.io/badge/Tailwind-3.3.6-cyan?style=for-the-badge&logo=tailwindcss)
 
-**A modern, feature-rich task management application with real-time sync and beautiful UI**
+**A modern, feature-rich task management application with real-time sync, beautiful UI, and enhanced calendar interactions**
 
 [🚀 Live Demo](https://akabara.github.io/todolist-app) • [📖 Setup Guide](SETUP_GUIDE.md) • [🐛 Report Bug](https://github.com/akabara/todolist-app/issues)
 <img width="2353" height="1294" alt="image" src="https://github.com/user-attachments/assets/812c55e0-e5d0-4eab-9b06-3da80e5fff54" />
 
 </div>
+
+---
+
+## 🆕 Latest Updates
+
+### 🎉 **Recent Enhancements (v2.1.0)**
+- 🎨 **Redesigned Authentication**: Clean, modern login/signup forms with improved spacing and user experience
+- 📅 **Enhanced Calendar Interactions**: 
+  - Double-click any day to view all tasks in a detailed popup
+  - Edit and delete tasks directly from the calendar day popup
+  - Rich hover tooltips showing task details (title, status, due date, start date)
+  - Smart task sorting by urgency and priority in day view
+- 🚫 **Removed Google Sign-in**: Simplified authentication flow focusing on email/password
+- 💡 **Improved UX**: Better visual feedback and intuitive task management workflows
 
 ---
 
@@ -50,16 +64,19 @@
 - 👁️ Multiple view modes
 - ⚠️ Overdue indicators
 - ⚡ Quick task creation
+- 📝 Edit/Delete tasks in day popup
+- 💡 Rich hover tooltips with task details
 
 </td>
 <td width="50%">
 
 ### 🔐 **Security & Auth**
 - 🔒 Firebase Authentication
-- 🌐 Google Sign-in
 - 👤 User data isolation
 - 🛡️ Firestore security rules
 - 🔄 Offline support
+- 🎨 Redesigned login/signup forms
+- 📱 Mobile-optimized authentication
 
 </td>
 </tr>
@@ -108,7 +125,7 @@ npm install
 
 3. **Enable Authentication**
    - Authentication → Sign-in method
-   - Enable **Email/Password** and **Google**
+   - Enable **Email/Password**
 
 </details>
 
@@ -237,6 +254,10 @@ npm run dev
 - 🎨 **Color Coding**: Visual priority and group indicators
 - ⚡ **Quick Actions**: Create/edit tasks directly on calendar
 - ⚠️ **Overdue Alerts**: Clear visual indicators
+- 📋 **Day Task Popup**: Double-click any day to view all tasks
+- ✏️ **Inline Task Management**: Edit/delete tasks directly from calendar popup
+- 💡 **Smart Tooltips**: Hover over tasks to see title, status, due date, and start date
+- 🎯 **Priority Sorting**: Tasks automatically sorted by urgency and priority
 
 </details>
 
