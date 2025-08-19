@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { loginWithEmail, registerWithEmail, loginWithGoogle } from '../services/auth'
+import { loginWithEmail, registerWithEmail } from '../services/auth'
 import { useAuthStore } from '../stores/authStore'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 
@@ -42,21 +42,6 @@ const LoginPage = () => {
     }
   }
 
-  const handleGoogleLogin = async () => {
-    setLoading(true)
-    setError('')
-
-    try {
-      const result = await loginWithGoogle()
-      if (result.error) {
-        setError(result.error)
-      }
-    } catch (err) {
-      setError('An unexpected error occurred')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
@@ -67,13 +52,13 @@ const LoginPage = () => {
           </h2>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
+          <div className="space-y-4">
             {!isLogin && (
               <div>
                 <input
                   type="text"
                   required
-                  className="input-field rounded-t-md"
+                  className="input-field"
                   placeholder="Display Name"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
@@ -84,7 +69,7 @@ const LoginPage = () => {
               <input
                 type="email"
                 required
-                className={`input-field ${isLogin ? 'rounded-t-md' : ''}`}
+                className="input-field"
                 placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -94,7 +79,7 @@ const LoginPage = () => {
               <input
                 type="password"
                 required
-                className="input-field rounded-b-md"
+                className="input-field"
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -120,20 +105,6 @@ const LoginPage = () => {
             </button>
           </div>
 
-          <div>
-            <button
-              type="button"
-              onClick={handleGoogleLogin}
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
-            >
-              {loading ? (
-                <LoadingSpinner size="sm" />
-              ) : (
-                'Sign in with Google'
-              )}
-            </button>
-          </div>
 
           <div className="text-center">
             <button
