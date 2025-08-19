@@ -7,5 +7,53 @@ export default defineConfig({
   base: '/todolist-app/',
   build: {
     outDir: 'dist',
+    rollupOptions: {
+      output: {
+        manualChunks: (id) => {
+          // Vendor chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'react-vendor'
+            }
+            if (id.includes('firebase')) {
+              return 'firebase-vendor'
+            }
+            if (id.includes('@headlessui') || id.includes('@heroicons')) {
+              return 'ui-vendor'
+            }
+            if (id.includes('react-big-calendar') || id.includes('date-fns')) {
+              return 'calendar-vendor'
+            }
+            if (id.includes('@dnd-kit')) {
+              return 'dnd-vendor'
+            }
+            if (id.includes('zustand')) {
+              return 'state-vendor'
+            }
+            // Other vendor libraries
+            return 'vendor'
+          }
+          
+          // App chunks
+          if (id.includes('/auth/') || id.includes('LoginPage') || id.includes('/services/auth')) {
+            return 'auth'
+          }
+          if (id.includes('/tasks/') || id.includes('TasksPage')) {
+            return 'tasks'
+          }
+          if (id.includes('/calendar/')) {
+            return 'calendar'
+          }
+          if (id.includes('/groups/')) {
+            return 'groups'
+          }
+        }
+      }
+    },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+    // Enable minification with esbuild (faster than terser)
+    minify: 'esbuild',
+    target: 'esnext'
   },
 })
