@@ -10,6 +10,7 @@
 **A modern, feature-rich task management application with real-time sync and beautiful UI**
 
 [🚀 Live Demo](https://akabara.github.io/todolist-app) • [📖 Setup Guide](SETUP_GUIDE.md) • [🐛 Report Bug](https://github.com/akabara/todolist-app/issues)
+<img width="2353" height="1294" alt="image" src="https://github.com/user-attachments/assets/812c55e0-e5d0-4eab-9b06-3da80e5fff54" />
 
 </div>
 
