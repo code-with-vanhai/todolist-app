@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Task, Priority } from '../../types'
 import { Modal } from '../ui/Modal'
 import { getTasksForDate } from '../../utils/taskDisplayLogic'
@@ -17,12 +17,12 @@ interface DayTasksModalProps {
   tasks: Task[]
 }
 
-const DayTasksModal: React.FC<DayTasksModalProps> = ({
+const DayTasksModal = ({
   isOpen,
   onClose,
   selectedDate,
   tasks
-}) => {
+}: DayTasksModalProps) => {
   const { getGroupById } = useGroupStore()
   const { deleteTask } = useTaskStore()
   const { user } = useAuthStore()

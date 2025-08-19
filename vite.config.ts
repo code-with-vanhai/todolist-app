@@ -8,6 +8,10 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     rollupOptions: {
+      external: (id) => {
+        // Don't externalize React - keep it bundled
+        return false
+      },
       output: {
         manualChunks: (id) => {
           // Vendor chunks
