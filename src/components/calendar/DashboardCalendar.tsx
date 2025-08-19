@@ -4,6 +4,7 @@ import { useGroupStore } from '../../stores/groupStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useAuthStore } from '../../stores/authStore'
 import TaskForm from '../tasks/TaskForm'
+import DayTasksModal from './DayTasksModal'
 import { getTasksForDate, getTaskDisplayPriority } from '../../utils/taskDisplayLogic'
 import { 
   ChevronLeftIcon, 
@@ -31,6 +32,8 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
     y: number
   } | null>(null)
   const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null)
+  const [showDayTasksModal, setShowDayTasksModal] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const { user } = useAuthStore()
   const { getGroupById, getDefaultGroup } = useGroupStore()
   const { filters, toggleTaskCompletion, updateTask } = useTaskStore()
@@ -110,6 +113,12 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
 
   const goToToday = () => {
     setCurrentDate(new Date())
+  }
+
+  // Handle double-click on calendar day
+  const handleDayDoubleClick = (date: Date) => {
+    setSelectedDate(date)
+    setShowDayTasksModal(true)
   }
 
 
@@ -334,7 +343,7 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
           return (
             <div
               key={index}
-              className={`min-h-[96px] p-2 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors ${
+              className={`min-h-[96px] p-2 border border-gray-200 dark:border-gray-700 rounded-lg transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 ${
                 calendarDay.isCurrentMonth
                   ? 'bg-white dark:bg-gray-800'
                   : 'bg-gray-50 dark:bg-gray-900'
@@ -350,6 +359,8 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
               onDragOver={(e) => handleDragOver(e, calendarDay.date)}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, calendarDay.date)}
+              onDoubleClick={() => handleDayDoubleClick(calendarDay.date)}
+              title="Double-click để xem tất cả công việc trong ngày"
             >
               {/* Day Number */}
               <div className={`text-sm font-medium mb-1 ${
@@ -393,13 +404,34 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
                           : ''
                       }`}
                       title={`${task.title} - ${group?.name || 'Default'} ${isOverdue ? '(OVERDUE)' : urgencyLevel === 'critical' ? '(CRITICAL)' : urgencyLevel === 'urgent' ? '(URGENT)' : ''}`}
-                      onDragStart={(e) => handleDragStart(e, task)}
-                      onDragEnd={handleDragEnd}
-                      onDoubleClick={() => setEditingTask(task)}
-                      onContextMenu={(e) => handleTaskRightClick(e, task)}
-                      onTouchStart={(e) => handleTouchStart(e, task)}
-                      onTouchEnd={handleTouchEnd}
-                      onTouchMove={handleTouchMove}
+                      onDragStart={(e) => {
+                        e.stopPropagation()
+                        handleDragStart(e, task)
+                      }}
+                      onDragEnd={(e) => {
+                        e.stopPropagation()
+                        handleDragEnd()
+                      }}
+                      onDoubleClick={(e) => {
+                        e.stopPropagation()
+                        setEditingTask(task)
+                      }}
+                      onContextMenu={(e) => {
+                        e.stopPropagation()
+                        handleTaskRightClick(e, task)
+                      }}
+                      onTouchStart={(e) => {
+                        e.stopPropagation()
+                        handleTouchStart(e, task)
+                      }}
+                      onTouchEnd={(e) => {
+                        e.stopPropagation()
+                        handleTouchEnd()
+                      }}
+                      onTouchMove={(e) => {
+                        e.stopPropagation()
+                        handleTouchMove()
+                      }}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-1 flex-1 min-w-0">
@@ -427,6 +459,7 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
                               y: rect.bottom
                             })
                           }}
+                          onDoubleClick={(e) => e.stopPropagation()}
                           aria-label="Tùy chọn task"
                         >
                           ⋮
@@ -440,7 +473,15 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
                 
                 {/* Show more indicator */}
                 {dayTasksInfo.length > 4 && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                  <div 
+                    className="text-xs text-gray-500 dark:text-gray-400 text-center cursor-pointer hover:text-gray-700 dark:hover:text-gray-300"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDayDoubleClick(calendarDay.date)
+                    }}
+                    onDoubleClick={(e) => e.stopPropagation()}
+                    title="Click để xem tất cả công việc"
+                  >
                     +{dayTasksInfo.length - 4} more
                   </div>
                 )}
@@ -545,6 +586,14 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
           onSuccess={() => setEditingTask(null)}
         />
       )}
+
+      {/* Day Tasks Modal */}
+      <DayTasksModal
+        isOpen={showDayTasksModal}
+        onClose={() => setShowDayTasksModal(false)}
+        selectedDate={selectedDate}
+        tasks={filteredTasks}
+      />
     </div>
   )
 }

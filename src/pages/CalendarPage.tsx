@@ -1,9 +1,10 @@
 import { useEffect } from 'react'
 import { useTaskStore } from '../stores/taskStore'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
+import DashboardCalendar from '../components/calendar/DashboardCalendar'
 
 const CalendarPage = () => {
-  const { loading, fetchTasks } = useTaskStore()
+  const { loading, tasks, fetchTasks } = useTaskStore()
 
   useEffect(() => {
     fetchTasks()
@@ -20,13 +21,14 @@ const CalendarPage = () => {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Calendar</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Lịch công việc</h1>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Double-click vào ngày để xem chi tiết công việc
+        </p>
       </div>
 
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <p className="text-gray-500 dark:text-gray-400 text-center py-8">
-          Calendar view coming soon...
-        </p>
+        <DashboardCalendar tasks={tasks} />
       </div>
     </div>
   )
