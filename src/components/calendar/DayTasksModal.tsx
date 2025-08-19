@@ -1,8 +1,14 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Task, Priority } from '../../types'
 import { Modal } from '../ui/Modal'
 import { getTasksForDate } from '../../utils/taskDisplayLogic'
 import { useGroupStore } from '../../stores/groupStore'
+import { useTaskStore } from '../../stores/taskStore'
+import { useAuthStore } from '../../stores/authStore'
+import { useConfirm } from '../ui/ConfirmDialog'
+import { useToast } from '../ui/Toast'
+import TaskForm from '../tasks/TaskForm'
+import { PencilIcon, TrashIcon } from '@heroicons/react/24/outline'
 
 interface DayTasksModalProps {
   isOpen: boolean
@@ -18,6 +24,12 @@ const DayTasksModal: React.FC<DayTasksModalProps> = ({
   tasks
 }) => {
   const { getGroupById } = useGroupStore()
+  const { deleteTask } = useTaskStore()
+  const { user } = useAuthStore()
+  const { confirm, ConfirmComponent } = useConfirm()
+  const { showToast } = useToast()
+  const [editingTask, setEditingTask] = useState<Task | null>(null)
+  const [loading, setLoading] = useState(false)
 
   if (!selectedDate) return null
 
@@ -92,9 +104,37 @@ const DayTasksModal: React.FC<DayTasksModalProps> = ({
     }
   }
 
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task)
+    // Không đóng modal ngay lập tức, để TaskForm hiển thị
+  }
+
+  const handleDeleteTask = (task: Task) => {
+    if (!user) return
+    
+    confirm(
+      'Xóa công việc',
+      `Bạn có chắc chắn muốn xóa công việc "${task.title}"?`,
+      async () => {
+        setLoading(true)
+        try {
+          await deleteTask(user.uid, task.id)
+          showToast('Đã xóa công việc thành công', 'success')
+        } catch (error: any) {
+          showToast('Có lỗi xảy ra khi xóa công việc', 'error')
+        } finally {
+          setLoading(false)
+        }
+      },
+      'danger',
+      'Xóa công việc'
+    )
+  }
+
   return (
+    <>
     <Modal
-      isOpen={isOpen}
+      isOpen={isOpen && !editingTask}
       onClose={onClose}
       title={`Công việc ngày ${formatDate(selectedDate)}`}
       className="max-w-2xl"
@@ -189,6 +229,26 @@ const DayTasksModal: React.FC<DayTasksModalProps> = ({
                         )}
                       </div>
                     </div>
+
+                    {/* Nút Edit và Delete */}
+                    <div className="flex items-center space-x-2 ml-4">
+                      <button
+                        onClick={() => handleEditTask(task)}
+                        className="text-gray-400 hover:text-blue-600 transition-colors p-1 rounded"
+                        title="Chỉnh sửa công việc"
+                        disabled={loading}
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteTask(task)}
+                        className="text-gray-400 hover:text-red-600 transition-colors p-1 rounded"
+                        title="Xóa công việc"
+                        disabled={loading}
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
                 </div>
               )
@@ -217,7 +277,23 @@ const DayTasksModal: React.FC<DayTasksModalProps> = ({
           </div>
         </div>
       )}
+
+      {/* Confirm Dialog */}
+      <ConfirmComponent />
     </Modal>
+
+    {/* TaskForm cho chỉnh sửa - render riêng biệt */}
+    {editingTask && (
+      <TaskForm
+        task={editingTask}
+        onClose={() => setEditingTask(null)}
+        onSuccess={() => {
+          setEditingTask(null)
+          showToast('Cập nhật công việc thành công', 'success')
+        }}
+      />
+    )}
+    </>
   )
 }
 
