@@ -8,7 +8,6 @@ import { onAuthStateChanged } from 'firebase/auth'
 const LoginPage = lazy(() => import('./pages/LoginPage'))
 const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 const TasksPage = lazy(() => import('./pages/TasksPage'))
-const CalendarPage = lazy(() => import('./pages/CalendarPage'))
 
 // Components
 import Layout from './components/ui/Layout'
@@ -68,7 +67,6 @@ function App() {
                       <Routes>
                         <Route path="/" element={<DashboardPage />} />
                         <Route path="/tasks" element={<TasksPage />} />
-                        <Route path="/calendar" element={<CalendarPage />} />
                       </Routes>
                     </Suspense>
                   </Layout>

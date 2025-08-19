@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { 
   HomeIcon, 
   CheckCircleIcon, 
-  CalendarIcon,
   Bars3Icon,
   XMarkIcon,
   UserCircleIcon
@@ -24,7 +23,6 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: HomeIcon },
     { name: 'Tasks', href: '/tasks', icon: CheckCircleIcon },
-    { name: 'Calendar', href: '/calendar', icon: CalendarIcon },
   ]
 
   const handleLogout = async () => {

@@ -128,6 +128,11 @@ const DashboardPage = () => {
         </div>
         <div className="p-6">
           <DashboardCalendar tasks={tasks} />
+          <div className="mt-4 text-center">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Double-click vào ngày để xem chi tiết công việc
+            </p>
+          </div>
         </div>
       </div>
 
