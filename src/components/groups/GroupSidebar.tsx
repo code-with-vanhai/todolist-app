@@ -15,7 +15,7 @@ import { useToast } from '../ui/Toast'
 
 const GroupSidebar = () => {
   const { user } = useAuthStore()
-  const { groups, fetchGroups, deleteGroup } = useGroupStore()
+  const { groups, loading, fetchGroups, deleteGroup } = useGroupStore()
   const { filters, setFilters, tasks } = useTaskStore()
   const [isExpanded, setIsExpanded] = useState(true)
   const [showGroupForm, setShowGroupForm] = useState(false)
@@ -25,10 +25,11 @@ const GroupSidebar = () => {
 
   useEffect(() => {
     // Only fetch groups if not already loaded to avoid permission issues
-    if (groups.length === 0) {
+    // Also check if we're not currently loading to prevent duplicate calls
+    if (groups.length === 0 && !loading) {
       fetchGroups()
     }
-  }, [fetchGroups, groups.length])
+  }, [fetchGroups, groups.length, loading])
 
   // Calculate task count for each group
   const getTaskCount = (groupId: string) => {
