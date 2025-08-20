@@ -194,6 +194,8 @@ export class TaskService {
       },
       (error) => {
         debugError('TaskService: Subscription error', error)
+        // Call callback with empty array to prevent UI hanging
+        callback([])
       }
     )
   }

@@ -67,12 +67,20 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return
     }
     
-    // Subscribe to real-time updates
-    const newUnsubscribe = taskService.subscribeToTasks(user.uid, (tasks) => {
-      set({ tasks, loading: false, error: null })
-    })
-    
-    set({ unsubscribe: newUnsubscribe })
+    // Add small delay to ensure Firebase Auth is fully synced with Firestore
+    setTimeout(() => {
+      try {
+        // Subscribe to real-time updates
+        const newUnsubscribe = taskService.subscribeToTasks(user.uid, (tasks) => {
+          set({ tasks, loading: false, error: null })
+        })
+        
+        set({ unsubscribe: newUnsubscribe })
+      } catch (error: any) {
+        debugError('TaskStore: Failed to subscribe to tasks', error)
+        set({ loading: false, error: 'Failed to load tasks. Please try refreshing the page.' })
+      }
+    }, 500) // 500ms delay to ensure auth is synced
   },
   
   createTask: async (userId, taskData) => {

@@ -186,6 +186,8 @@ export class GroupService {
       },
       (error) => {
         debugError('GroupService: Subscription error', error)
+        // Call callback with empty array to prevent UI hanging
+        callback([])
       }
     )
   }

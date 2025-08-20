@@ -58,17 +58,23 @@ export const useGroupStore = create<GroupState>((set, get) => ({
       return
     }
     
-    // Ensure default group exists first
-    groupService.ensureDefaultGroup(user.uid).catch(error => {
-      debugError('GroupStore: Failed to ensure default group', error)
-    })
-
-    // Subscribe to real-time updates
-    const newUnsubscribe = groupService.subscribeToGroups(user.uid, (groups) => {
-      set({ groups, loading: false, error: null })
-    })
-    
-    set({ unsubscribe: newUnsubscribe })
+    // Add small delay to ensure Firebase Auth is fully synced with Firestore
+    setTimeout(async () => {
+      try {
+        // Ensure default group exists first
+        await groupService.ensureDefaultGroup(user.uid)
+        
+        // Subscribe to real-time updates
+        const newUnsubscribe = groupService.subscribeToGroups(user.uid, (groups) => {
+          set({ groups, loading: false, error: null })
+        })
+        
+        set({ unsubscribe: newUnsubscribe })
+      } catch (error: any) {
+        debugError('GroupStore: Failed to setup groups', error)
+        set({ loading: false, error: 'Failed to load groups. Please try refreshing the page.' })
+      }
+    }, 500) // 500ms delay to ensure auth is synced
   },
   
   createGroup: async (userId, groupData) => {
