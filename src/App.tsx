@@ -14,6 +14,7 @@ import Layout from './components/ui/Layout'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 import LoadingSpinner from './components/ui/LoadingSpinner'
 import DebugPanel from './components/debug/DebugPanel'
+import FirestoreDebugPanel from './components/debug/FirestoreDebugPanel'
 
 function App() {
   const { setUser, setLoading, loading } = useAuthStore()
@@ -76,6 +77,7 @@ function App() {
           </Routes>
         </Suspense>
         {import.meta.env.DEV && <DebugPanel />}
+        <FirestoreDebugPanel />
       </div>
     </Router>
   )

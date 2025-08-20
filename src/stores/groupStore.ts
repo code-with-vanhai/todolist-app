@@ -3,6 +3,7 @@ import { Group } from '../types'
 import { groupService } from '../services/groups'
 import { useAuthStore } from './authStore'
 import { debugLog, debugError } from '../utils/debug'
+import { firestoreDebugger } from '../utils/firestoreDebugger'
 import { getFirebaseErrorMessage } from '../utils/errorHandler'
 
 interface GroupState {
@@ -61,25 +62,37 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     // Add delay and retry mechanism to ensure Firebase Auth is fully synced
     const setupGroupsWithRetry = async (retries = 3) => {
       try {
-        // Wait for auth to be fully ready
-        await new Promise(resolve => setTimeout(resolve, 300)) // Reduced to 300ms
+        // Log auth state before operation
+        await firestoreDebugger.logAuthState(`GroupStore-fetchGroups-attempt-${4-retries}`)
         
-        // Ensure default group exists first
+        // Wait for auth to be fully ready
+        const authReady = await firestoreDebugger.waitForAuthReady(2000)
+        if (!authReady) {
+          throw new Error('Auth timeout - user not ready')
+        }
+        
+        // Log before Firestore operations
+        firestoreDebugger.logFirestoreOperation('ensureDefaultGroup-start', user.uid)
         await groupService.ensureDefaultGroup(user.uid)
+        firestoreDebugger.logFirestoreOperation('ensureDefaultGroup-success', user.uid)
         
         // Subscribe to real-time updates
+        firestoreDebugger.logFirestoreOperation('subscribeToGroups-start', user.uid)
         const newUnsubscribe = groupService.subscribeToGroups(user.uid, (groups) => {
+          firestoreDebugger.logFirestoreOperation('subscribeToGroups-callback', user.uid)
           set({ groups, loading: false, error: null })
         })
         
         set({ unsubscribe: newUnsubscribe })
+        firestoreDebugger.logFirestoreOperation('subscribeToGroups-success', user.uid)
       } catch (error: any) {
+        firestoreDebugger.logFirestoreOperation('fetchGroups-error', user.uid, error)
         debugError('GroupStore: Failed to setup groups', error)
         
         // Retry if permission denied and retries left
         if (error.code === 'permission-denied' && retries > 0) {
           debugLog(`GroupStore: Retrying in 1s... (${retries} retries left)`)
-          setTimeout(() => setupGroupsWithRetry(retries - 1), 500)
+          setTimeout(() => setupGroupsWithRetry(retries - 1), 1000)
           return
         }
         
