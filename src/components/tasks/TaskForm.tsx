@@ -25,7 +25,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     title: task?.title || '',
     description: task?.description || '',
-    startDate: task?.startDate ? task.startDate.toISOString().split('T')[0] : '',
+    startDate: task?.startDate ? task.startDate.toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
     dueDate: task?.dueDate ? task.dueDate.toISOString().split('T')[0] : '',
     priority: task?.priority || Priority.MEDIUM,
     status: task?.status || TaskStatus.TODO,
@@ -55,7 +55,7 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
       const taskData = {
         title: formData.title.trim(),
         description: formData.description.trim() || undefined,
-        startDate: formData.startDate ? new Date(formData.startDate) : undefined,
+        startDate: formData.startDate ? new Date(formData.startDate) : new Date(),
         dueDate: formData.dueDate ? new Date(formData.dueDate) : undefined,
         priority: formData.priority,
         status: formData.status,
