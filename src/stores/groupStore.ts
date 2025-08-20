@@ -62,7 +62,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     const setupGroupsWithRetry = async (retries = 3) => {
       try {
         // Wait for auth to be fully ready
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Increase to 1000ms
+        await new Promise(resolve => setTimeout(resolve, 300)) // Reduced to 300ms
         
         // Ensure default group exists first
         await groupService.ensureDefaultGroup(user.uid)
@@ -79,7 +79,7 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         // Retry if permission denied and retries left
         if (error.code === 'permission-denied' && retries > 0) {
           debugLog(`GroupStore: Retrying in 1s... (${retries} retries left)`)
-          setTimeout(() => setupGroupsWithRetry(retries - 1), 1000)
+          setTimeout(() => setupGroupsWithRetry(retries - 1), 500)
           return
         }
         

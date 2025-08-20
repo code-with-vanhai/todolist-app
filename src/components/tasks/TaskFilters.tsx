@@ -1,17 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useTaskStore } from '../../stores/taskStore'
-import { useGroupStore } from '../../stores/groupStore'
 import { TaskStatus, Priority } from '../../types'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
 
 const TaskFilters = () => {
   const { filters, setFilters } = useTaskStore()
-  const { fetchGroups } = useGroupStore()
   const [searchQuery, setSearchQuery] = useState(filters.searchQuery || '')
-
-  useEffect(() => {
-    fetchGroups()
-  }, [fetchGroups])
 
   const handleStatusFilter = (status: TaskStatus) => {
     const currentStatuses = filters.status || []

@@ -24,8 +24,11 @@ const GroupSidebar = () => {
   const { showToast } = useToast()
 
   useEffect(() => {
-    fetchGroups()
-  }, [fetchGroups])
+    // Only fetch groups if not already loaded to avoid permission issues
+    if (groups.length === 0) {
+      fetchGroups()
+    }
+  }, [fetchGroups, groups.length])
 
   // Calculate task count for each group
   const getTaskCount = (groupId: string) => {

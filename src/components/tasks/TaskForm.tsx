@@ -33,8 +33,11 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
   })
 
   useEffect(() => {
-    fetchGroups()
-  }, [fetchGroups])
+    // Only fetch groups if not already loaded to avoid permission issues
+    if (groups.length === 0) {
+      fetchGroups()
+    }
+  }, [fetchGroups, groups.length])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

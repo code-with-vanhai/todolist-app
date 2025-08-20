@@ -71,7 +71,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const setupTasksWithRetry = async (retries = 3) => {
       try {
         // Wait for auth to be fully ready
-        await new Promise(resolve => setTimeout(resolve, 1000)) // Increase to 1000ms
+        await new Promise(resolve => setTimeout(resolve, 300)) // Reduced to 300ms
         
         // Subscribe to real-time updates
         const newUnsubscribe = taskService.subscribeToTasks(user.uid, (tasks) => {
@@ -85,7 +85,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         // Retry if permission denied and retries left
         if (error.code === 'permission-denied' && retries > 0) {
           debugLog(`TaskStore: Retrying in 1s... (${retries} retries left)`)
-          setTimeout(() => setupTasksWithRetry(retries - 1), 1000)
+          setTimeout(() => setupTasksWithRetry(retries - 1), 500)
           return
         }
         
