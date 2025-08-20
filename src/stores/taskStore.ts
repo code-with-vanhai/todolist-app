@@ -67,9 +67,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       return
     }
     
-    // Add small delay to ensure Firebase Auth is fully synced with Firestore
-    setTimeout(() => {
+    // Add delay and retry mechanism to ensure Firebase Auth is fully synced
+    const setupTasksWithRetry = async (retries = 3) => {
       try {
+        // Wait for auth to be fully ready
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Increase to 1000ms
+        
         // Subscribe to real-time updates
         const newUnsubscribe = taskService.subscribeToTasks(user.uid, (tasks) => {
           set({ tasks, loading: false, error: null })
@@ -78,9 +81,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         set({ unsubscribe: newUnsubscribe })
       } catch (error: any) {
         debugError('TaskStore: Failed to subscribe to tasks', error)
+        
+        // Retry if permission denied and retries left
+        if (error.code === 'permission-denied' && retries > 0) {
+          debugLog(`TaskStore: Retrying in 1s... (${retries} retries left)`)
+          setTimeout(() => setupTasksWithRetry(retries - 1), 1000)
+          return
+        }
+        
         set({ loading: false, error: 'Failed to load tasks. Please try refreshing the page.' })
       }
-    }, 500) // 500ms delay to ensure auth is synced
+    }
+    
+    setupTasksWithRetry()
   },
   
   createTask: async (userId, taskData) => {

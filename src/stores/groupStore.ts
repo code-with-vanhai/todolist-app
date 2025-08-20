@@ -58,9 +58,12 @@ export const useGroupStore = create<GroupState>((set, get) => ({
       return
     }
     
-    // Add small delay to ensure Firebase Auth is fully synced with Firestore
-    setTimeout(async () => {
+    // Add delay and retry mechanism to ensure Firebase Auth is fully synced
+    const setupGroupsWithRetry = async (retries = 3) => {
       try {
+        // Wait for auth to be fully ready
+        await new Promise(resolve => setTimeout(resolve, 1000)) // Increase to 1000ms
+        
         // Ensure default group exists first
         await groupService.ensureDefaultGroup(user.uid)
         
@@ -72,9 +75,19 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         set({ unsubscribe: newUnsubscribe })
       } catch (error: any) {
         debugError('GroupStore: Failed to setup groups', error)
+        
+        // Retry if permission denied and retries left
+        if (error.code === 'permission-denied' && retries > 0) {
+          debugLog(`GroupStore: Retrying in 1s... (${retries} retries left)`)
+          setTimeout(() => setupGroupsWithRetry(retries - 1), 1000)
+          return
+        }
+        
         set({ loading: false, error: 'Failed to load groups. Please try refreshing the page.' })
       }
-    }, 500) // 500ms delay to ensure auth is synced
+    }
+    
+    setupGroupsWithRetry()
   },
   
   createGroup: async (userId, groupData) => {
