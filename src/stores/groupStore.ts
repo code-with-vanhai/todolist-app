@@ -5,21 +5,26 @@ import { useAuthStore } from './authStore'
 import { debugLog, debugError } from '../utils/debug'
 import { firestoreDebugger } from '../utils/firestoreDebugger'
 import { getFirebaseErrorMessage } from '../utils/errorHandler'
+import { collection, getDocsFromServer } from 'firebase/firestore'
+import { db } from '../services/firebase'
 
 interface GroupState {
   groups: Group[]
   loading: boolean
   error: string | null
   unsubscribe: (() => void) | null
+  isRealtimeMode: boolean
   
   // Actions
   setGroups: (groups: Group[]) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
   setUnsubscribe: (unsubscribe: (() => void) | null) => void
+  setRealtimeMode: (isRealtime: boolean) => void
   
   // Group operations
   fetchGroups: () => void
+  refreshGroups: () => void
   createGroup: (userId: string, groupData: Omit<Group, 'id' | 'userId' | 'createdAt'>) => Promise<void>
   updateGroup: (userId: string, groupId: string, updates: Partial<Group>) => Promise<void>
   deleteGroup: (userId: string, groupId: string) => Promise<void>
@@ -34,14 +39,22 @@ export const useGroupStore = create<GroupState>((set, get) => ({
   loading: false,
   error: null,
   unsubscribe: null,
+  isRealtimeMode: true,
   
   setGroups: (groups) => set({ groups }),
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   setUnsubscribe: (unsubscribe) => set({ unsubscribe }),
+  setRealtimeMode: (isRealtime) => set({ isRealtimeMode: isRealtime }),
   
   fetchGroups: () => {
-    const { unsubscribe } = get()
+    const { unsubscribe, loading } = get()
+    
+    // Prevent duplicate calls
+    if (loading) {
+      debugLog('GroupStore: Already loading, skipping duplicate call')
+      return
+    }
     
     // Cleanup existing subscription
     if (unsubscribe) {
@@ -76,15 +89,43 @@ export const useGroupStore = create<GroupState>((set, get) => ({
         await groupService.ensureDefaultGroup(user.uid)
         firestoreDebugger.logFirestoreOperation('ensureDefaultGroup-success', user.uid)
         
-        // Subscribe to real-time updates
+        // Try realtime subscription first, fallback to server read if permission denied
         firestoreDebugger.logFirestoreOperation('subscribeToGroups-start', user.uid)
-        const newUnsubscribe = groupService.subscribeToGroups(user.uid, (groups) => {
-          firestoreDebugger.logFirestoreOperation('subscribeToGroups-callback', user.uid)
-          set({ groups, loading: false, error: null })
-        })
-        
-        set({ unsubscribe: newUnsubscribe })
-        firestoreDebugger.logFirestoreOperation('subscribeToGroups-success', user.uid)
+        try {
+          const newUnsubscribe = groupService.subscribeToGroups(user.uid, (groups) => {
+            firestoreDebugger.logFirestoreOperation('subscribeToGroups-callback', user.uid)
+            set({ groups, loading: false, error: null })
+          })
+          
+          set({ unsubscribe: newUnsubscribe, isRealtimeMode: true })
+          firestoreDebugger.logFirestoreOperation('subscribeToGroups-success', user.uid)
+        } catch (error: any) {
+          // Fallback to server read if subscription fails
+          firestoreDebugger.logFirestoreOperation('subscribeToGroups-fallback', user.uid, error)
+          
+          try {
+            const groupsRef = collection(db, 'users', user.uid, 'groups')
+            const snapshot = await getDocsFromServer(groupsRef)
+            
+            const groups = snapshot.docs.map(doc => {
+              const data = doc.data()
+              return {
+                id: doc.id,
+                userId: user.uid,
+                name: data.name,
+                color: data.color,
+                icon: data.icon,
+                createdAt: data.createdAt?.toDate?.() || new Date(),
+              }
+            })
+            
+            set({ groups, loading: false, error: null, isRealtimeMode: false })
+            firestoreDebugger.logFirestoreOperation('getGroups-fallback-success', user.uid)
+          } catch (fallbackError: any) {
+            firestoreDebugger.logFirestoreOperation('getGroups-fallback-error', user.uid, fallbackError)
+            set({ loading: false, error: 'Failed to load groups', isRealtimeMode: false })
+          }
+        }
       } catch (error: any) {
         firestoreDebugger.logFirestoreOperation('fetchGroups-error', user.uid, error)
         debugError('GroupStore: Failed to setup groups', error)
@@ -101,6 +142,41 @@ export const useGroupStore = create<GroupState>((set, get) => ({
     }
     
     setupGroupsWithRetry()
+  },
+
+  refreshGroups: () => {
+    const authState = useAuthStore.getState()
+    const user = authState.user
+    
+    if (!user) return
+    
+    set({ loading: true })
+    
+    // Force server read for refresh
+    const refreshData = async () => {
+      try {
+        const groupsRef = collection(db, 'users', user.uid, 'groups')
+        const snapshot = await getDocsFromServer(groupsRef)
+        
+        const groups = snapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            userId: user.uid,
+            name: data.name,
+            color: data.color,
+            icon: data.icon,
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+          }
+        })
+        
+        set({ groups, loading: false, error: null })
+      } catch (error: any) {
+        set({ loading: false, error: 'Failed to refresh groups' })
+      }
+    }
+    
+    refreshData()
   },
   
   createGroup: async (userId, groupData) => {

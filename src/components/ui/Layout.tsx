@@ -10,6 +10,7 @@ import {
 import { useAuthStore } from '../../stores/authStore'
 import { logout } from '../../services/auth'
 import GroupSidebar from '../groups/GroupSidebar'
+import RealtimeStatus from './RealtimeStatus'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -104,6 +105,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               <GroupSidebar />
             </div>
           </div>
+          
+          {/* Realtime Status */}
+          <div className="flex-shrink-0 border-t border-gray-200 dark:border-gray-700 p-4">
+            <RealtimeStatus />
+          </div>
+          
           <div className="flex-shrink-0 flex border-t border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center">
               <div>

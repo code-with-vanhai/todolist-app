@@ -14,15 +14,32 @@ const ThemeToggle = () => {
     setIsDark(hasDarkClass)
 
     if (!user) return
-    const unsub = preferencesService.subscribe(user.uid, (prefs) => {
-      const theme = prefs?.theme as ThemeMode | undefined
-      if (!theme) return
-      const shouldDark = theme === 'dark'
-      root.classList.toggle('dark', shouldDark)
-      setIsDark(shouldDark)
-      try { localStorage.setItem('theme', shouldDark ? 'dark' : 'light') } catch {}
-    })
-    return () => { unsub && unsub() }
+    
+    // Try subscription first, fallback to one-time read if permission denied
+    try {
+      const unsub = preferencesService.subscribe(user.uid, (prefs) => {
+        const theme = prefs?.theme as ThemeMode | undefined
+        if (!theme) return
+        const shouldDark = theme === 'dark'
+        root.classList.toggle('dark', shouldDark)
+        setIsDark(shouldDark)
+        try { localStorage.setItem('theme', shouldDark ? 'dark' : 'light') } catch {}
+      })
+      
+      return () => { unsub && unsub() }
+    } catch (error) {
+      // Fallback to one-time read if subscription fails
+      preferencesService.getPreferences(user.uid).then(prefs => {
+        const theme = prefs?.theme as ThemeMode | undefined
+        if (!theme) return
+        const shouldDark = theme === 'dark'
+        root.classList.toggle('dark', shouldDark)
+        setIsDark(shouldDark)
+        try { localStorage.setItem('theme', shouldDark ? 'dark' : 'light') } catch {}
+      }).catch(() => {
+        // Ignore errors, use default theme
+      })
+    }
   }, [user])
 
   const toggleTheme = async () => {

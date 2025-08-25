@@ -4,7 +4,7 @@ import { useGroupStore } from '../../stores/groupStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { checkFirebaseConfig } from '../../utils/debug'
 import { Priority, TaskStatus } from '../../types'
-import { collection, getDocs, doc, deleteDoc, updateDoc, query, where } from 'firebase/firestore'
+import { collection, getDocs, doc, deleteDoc, updateDoc, query, where, writeBatch } from 'firebase/firestore'
 import { db } from '../../services/firebase'
 
 const DebugPanel = () => {
@@ -15,6 +15,8 @@ const DebugPanel = () => {
   const [testLoading, setTestLoading] = useState(false)
   const [cleanupLoading, setCleanupLoading] = useState(false)
   const [cleanupResult, setCleanupResult] = useState<string | null>(null)
+  const [taskCleanupLoading, setTaskCleanupLoading] = useState(false)
+  const [taskCleanupResult, setTaskCleanupResult] = useState<string | null>(null)
 
   const testCreateTask = async () => {
     if (!user) {
@@ -30,6 +32,10 @@ const DebugPanel = () => {
         priority: Priority.MEDIUM,
         status: TaskStatus.TODO,
         isCompleted: false,
+        groupId: 'default', // Ensure valid groupId
+        startDate: null,
+        dueDate: null,
+        completedAt: null,
       })
       alert('Test task created successfully!')
     } catch (error: any) {
@@ -137,6 +143,68 @@ const DebugPanel = () => {
     }
   }
 
+  const cleanupInvalidTasks = async () => {
+    if (!user) {
+      alert('No user logged in!')
+      return
+    }
+
+    setTaskCleanupLoading(true)
+    setTaskCleanupResult(null)
+    
+    try {
+      // Get all tasks for user
+      const tasksRef = collection(db, 'users', user.uid, 'tasks')
+      const snapshot = await getDocs(tasksRef)
+      
+      const invalidTasks: any[] = []
+      const debugTasks: any[] = []
+      
+      snapshot.forEach(doc => {
+        const data = doc.data()
+        const isDebugTask = data.title?.includes('Test Task') || 
+                           data.description?.includes('debug panel')
+        
+        // Check for missing required fields or invalid data
+        const hasRequiredFields = data.title && 
+                                 data.priority && 
+                                 data.status !== undefined && 
+                                 data.isCompleted !== undefined
+        
+        if (isDebugTask) {
+          debugTasks.push({ id: doc.id, ...data })
+        }
+        
+        if (!hasRequiredFields || isDebugTask) {
+          invalidTasks.push({ id: doc.id, ...data })
+        }
+      })
+      
+      if (invalidTasks.length === 0) {
+        setTaskCleanupResult(`✅ Không có tasks không hợp lệ (tổng: ${snapshot.size} tasks)`)
+        return
+      }
+
+      // Batch delete invalid tasks
+      const batch = writeBatch(db)
+      
+      invalidTasks.forEach(task => {
+        const taskRef = doc(db, 'users', user.uid, 'tasks', task.id)
+        batch.delete(taskRef)
+      })
+
+      await batch.commit()
+
+      setTaskCleanupResult(`🎉 Đã xóa ${invalidTasks.length} tasks không hợp lệ (${debugTasks.length} debug tasks)`)
+      
+    } catch (error: any) {
+      console.error('Error cleaning up tasks:', error)
+      setTaskCleanupResult(`❌ Lỗi: ${error.message}`)
+    } finally {
+      setTaskCleanupLoading(false)
+    }
+  }
+
   const firebaseConfigOk = checkFirebaseConfig()
 
   if (!showDebug) {
@@ -153,7 +221,7 @@ const DebugPanel = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 max-w-sm shadow-lg">
+    <div className="fixed bottom-4 right-4 z-50 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg p-4 max-w-sm max-h-96 overflow-y-auto shadow-lg">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-bold text-sm">Debug Panel</h3>
         <button
@@ -191,6 +259,9 @@ const DebugPanel = () => {
 
         <div>
           <strong>Tasks:</strong> {tasks.length} loaded
+          {tasks.some(task => task.title?.includes('Test Task')) && (
+            <span className="text-red-600 ml-1">⚠️ Debug tasks detected!</span>
+          )}
         </div>
 
         <div>
@@ -208,6 +279,17 @@ const DebugPanel = () => {
         )}
 
         <div className="pt-2 border-t space-y-2">
+          {/* Priority cleanup button for debug tasks */}
+          {tasks.some(task => task.title?.includes('Test Task')) && (
+            <button
+              onClick={cleanupInvalidTasks}
+              disabled={taskCleanupLoading || !user}
+              className="w-full bg-red-600 text-white px-3 py-2 rounded text-sm font-bold disabled:opacity-50 animate-pulse"
+            >
+              {taskCleanupLoading ? 'Cleaning...' : '🚨 CLEANUP DEBUG TASKS NOW!'}
+            </button>
+          )}
+          
           <button
             onClick={testCreateTask}
             disabled={testLoading || !user}
@@ -224,9 +306,23 @@ const DebugPanel = () => {
             {cleanupLoading ? 'Cleaning...' : 'Cleanup Duplicate Groups'}
           </button>
           
+          <button
+            onClick={cleanupInvalidTasks}
+            disabled={taskCleanupLoading || !user}
+            className="w-full bg-orange-500 text-white px-3 py-1 rounded text-xs disabled:opacity-50"
+          >
+            {taskCleanupLoading ? 'Cleaning...' : 'Cleanup Invalid Tasks'}
+          </button>
+          
           {cleanupResult && (
             <div className="text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded">
               {cleanupResult}
+            </div>
+          )}
+          
+          {taskCleanupResult && (
+            <div className="text-xs p-2 bg-gray-100 dark:bg-gray-700 rounded">
+              {taskCleanupResult}
             </div>
           )}
         </div>

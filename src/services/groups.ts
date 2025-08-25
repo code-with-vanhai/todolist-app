@@ -47,19 +47,8 @@ export class GroupService {
   // Ensure default group exists (idempotent) - only if no default group exists
   async ensureDefaultGroup(userId: string): Promise<string> {
     try {
-      // First check if any default group already exists
-      const groupsRef = collection(db, 'users', userId, 'groups')
-      const snapshot = await getDocs(groupsRef)
-      
-      for (const docSnapshot of snapshot.docs) {
-        const data = docSnapshot.data()
-        if (data.name === 'Default' || data.name === 'Nhóm mặc định') {
-          debugLog('GroupService: Default group already exists', docSnapshot.id)
-          return docSnapshot.id
-        }
-      }
-      
-      // Only create if no default group exists
+      // Simply ensure the default group exists without reading all groups first
+      // This avoids permission issues when there are no groups yet
       const defaultGroupRef = doc(db, 'users', userId, 'groups', 'default')
       await setDoc(defaultGroupRef, {
         name: 'Default',
@@ -68,7 +57,7 @@ export class GroupService {
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
       }, { merge: true })
-      debugLog('GroupService: Created new default group')
+      debugLog('GroupService: Ensured default group exists')
       return 'default'
     } catch (error: any) {
       debugError('GroupService: Ensure default group failed', error)
@@ -124,8 +113,8 @@ export class GroupService {
     }
 
     try {
-      // 1. Ensure default group exists
-      const defaultGroupId = await this.ensureDefaultGroup(userId)
+      // 1. Use 'default' as the default group ID directly
+      const defaultGroupId = 'default'
 
       // 2. Get all tasks with this groupId
       const tasksQuery = query(

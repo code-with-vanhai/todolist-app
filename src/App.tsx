@@ -76,8 +76,12 @@ function App() {
             />
           </Routes>
         </Suspense>
-        {import.meta.env.DEV && <DebugPanel />}
-        <FirestoreDebugPanel />
+        {import.meta.env.DEV && (
+          <>
+            <DebugPanel />
+            <FirestoreDebugPanel />
+          </>
+        )}
       </div>
     </Router>
   )

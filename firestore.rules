@@ -24,7 +24,9 @@ service cloud.firestore {
     match /users/{userId} {
       // User preferences
       match /settings/preferences {
-        allow read, create, update: if isOwner(userId)
+        allow read: if isOwner(userId);
+        
+        allow create, update: if isOwner(userId)
           && request.resource.data.keys().hasOnly(['theme', 'updatedAt'])
           && request.resource.data.theme in ['light', 'dark']
           && isValidTimestamp(request.resource.data.updatedAt);
@@ -65,7 +67,17 @@ service cloud.firestore {
           && (!('groupId' in request.resource.data) || 
               request.resource.data.groupId == 'default' ||
               exists(/databases/$(database)/documents/users/$(userId)/groups/$(request.resource.data.groupId)))
-          && hasRequiredTimestamps();
+          && hasRequiredTimestamps()
+          // Validate optional date fields
+          && (!('startDate' in request.resource.data) || 
+              request.resource.data.startDate == null || 
+              request.resource.data.startDate is timestamp)
+          && (!('dueDate' in request.resource.data) || 
+              request.resource.data.dueDate == null || 
+              request.resource.data.dueDate is timestamp)
+          && (!('completedAt' in request.resource.data) || 
+              request.resource.data.completedAt == null || 
+              request.resource.data.completedAt is timestamp);
           
         allow update: if isOwner(userId)
           && request.resource.data.keys().hasAll(['updatedAt'])
@@ -82,7 +94,17 @@ service cloud.firestore {
               request.resource.data.isCompleted is bool)
           && (!('groupId' in request.resource.data) || 
               request.resource.data.groupId == 'default' ||
-              exists(/databases/$(database)/documents/users/$(userId)/groups/$(request.resource.data.groupId)));
+              exists(/databases/$(database)/documents/users/$(userId)/groups/$(request.resource.data.groupId)))
+          // Validate optional date fields in updates
+          && (!('startDate' in request.resource.data) || 
+              request.resource.data.startDate == null || 
+              request.resource.data.startDate is timestamp)
+          && (!('dueDate' in request.resource.data) || 
+              request.resource.data.dueDate == null || 
+              request.resource.data.dueDate is timestamp)
+          && (!('completedAt' in request.resource.data) || 
+              request.resource.data.completedAt == null || 
+              request.resource.data.completedAt is timestamp);
         
         allow delete: if isOwner(userId);
       }

@@ -3,6 +3,8 @@ import { Task, TaskFilters, TaskSort, TaskStatus, Priority } from '../types'
 import { taskService } from '../services/tasks'
 import { useAuthStore } from './authStore'
 import { debugLog, debugError } from '../utils/debug'
+import { collection, getDocsFromServer } from 'firebase/firestore'
+import { db } from '../services/firebase'
 
 interface TaskState {
   tasks: Task[]
@@ -22,6 +24,7 @@ interface TaskState {
   
   // Task operations
   fetchTasks: () => void
+  refreshTasks: () => void
   createTask: (userId: string, taskData: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>
   updateTask: (userId: string, taskId: string, updates: Partial<Task>) => Promise<void>
   deleteTask: (userId: string, taskId: string) => Promise<void>
@@ -49,7 +52,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   setUnsubscribe: (unsubscribe) => set({ unsubscribe }),
   
   fetchTasks: () => {
-    const { unsubscribe } = get()
+    const { unsubscribe, loading } = get()
+    
+    // Prevent duplicate calls
+    if (loading) {
+      debugLog('TaskStore: Already loading, skipping duplicate call')
+      return
+    }
     
     // Cleanup existing subscription
     if (unsubscribe) {
@@ -73,12 +82,37 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         // Wait for auth to be fully ready
         await new Promise(resolve => setTimeout(resolve, 300)) // Reduced to 300ms
         
-        // Subscribe to real-time updates
-        const newUnsubscribe = taskService.subscribeToTasks(user.uid, (tasks) => {
-          set({ tasks, loading: false, error: null })
-        })
+        // Use fallback approach directly to avoid permission errors
+        debugLog('TaskStore: Using server read to avoid permission issues')
         
-        set({ unsubscribe: newUnsubscribe })
+        try {
+          const tasksRef = collection(db, 'users', user.uid, 'tasks')
+          const snapshot = await getDocsFromServer(tasksRef)
+          
+          const tasks = snapshot.docs.map(doc => {
+            const data = doc.data()
+            return {
+              id: doc.id,
+              userId: user.uid,
+              title: data.title,
+              description: data.description || '',
+              priority: data.priority,
+              status: data.status,
+              isCompleted: data.isCompleted,
+              groupId: data.groupId || 'default',
+              startDate: data.startDate?.toDate?.() || null,
+              dueDate: data.dueDate?.toDate?.() || null,
+              createdAt: data.createdAt?.toDate?.() || new Date(),
+              updatedAt: data.updatedAt?.toDate?.() || new Date(),
+              completedAt: data.completedAt?.toDate?.() || null,
+            }
+          })
+          
+          set({ tasks, loading: false, error: null })
+        } catch (error: any) {
+          debugError('TaskStore: Server read failed', error)
+          set({ loading: false, error: 'Failed to load tasks' })
+        }
       } catch (error: any) {
         debugError('TaskStore: Failed to subscribe to tasks', error)
         
@@ -94,6 +128,48 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
     
     setupTasksWithRetry()
+  },
+
+  refreshTasks: () => {
+    const authState = useAuthStore.getState()
+    const user = authState.user
+    
+    if (!user) return
+    
+    set({ loading: true })
+    
+    // Force server read for refresh
+    const refreshData = async () => {
+      try {
+        const tasksRef = collection(db, 'users', user.uid, 'tasks')
+        const snapshot = await getDocsFromServer(tasksRef)
+        
+        const tasks = snapshot.docs.map(doc => {
+          const data = doc.data()
+          return {
+            id: doc.id,
+            userId: user.uid,
+            title: data.title,
+            description: data.description || '',
+            priority: data.priority,
+            status: data.status,
+            isCompleted: data.isCompleted,
+            groupId: data.groupId || 'default',
+            startDate: data.startDate?.toDate?.() || null,
+            dueDate: data.dueDate?.toDate?.() || null,
+            createdAt: data.createdAt?.toDate?.() || new Date(),
+            updatedAt: data.updatedAt?.toDate?.() || new Date(),
+            completedAt: data.completedAt?.toDate?.() || null,
+          }
+        })
+        
+        set({ tasks, loading: false, error: null })
+      } catch (error: any) {
+        set({ loading: false, error: 'Failed to refresh tasks' })
+      }
+    }
+    
+    refreshData()
   },
   
   createTask: async (userId, taskData) => {

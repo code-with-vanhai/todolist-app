@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, enableNetwork } from 'firebase/firestore'
 import { checkFirebaseConfig, debugError } from '../utils/debug'
 
 const firebaseConfig = {
@@ -25,5 +25,15 @@ export const auth = getAuth(app)
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app)
+
+// Force online mode to avoid offline cache issues that might cause permission errors
+try {
+  // Ensure Firestore is online and not using stale cache
+  enableNetwork(db).catch(() => {
+    // Ignore errors if already online
+  })
+} catch (error) {
+  console.warn('Failed to enable Firestore network:', error)
+}
 
 export default app
