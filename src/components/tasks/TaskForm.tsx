@@ -16,7 +16,7 @@ interface TaskFormProps {
 
 const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
   const { user } = useAuthStore()
-  const { createTask, updateTask } = useTaskStore()
+  const { createTask, updateTask, refreshTasks } = useTaskStore()
   const { groups, fetchGroups, getDefaultGroup } = useGroupStore()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -79,6 +79,10 @@ const TaskForm: React.FC<TaskFormProps> = ({ task, onClose, onSuccess }) => {
 
       debugLog('Task operation completed successfully')
       showToast(task ? 'Cập nhật task thành công' : 'Tạo task thành công', 'success')
+      
+      // Refresh tasks để calendar hiển thị ngay lập tức
+      refreshTasks()
+      
       onSuccess?.()
       onClose()
     } catch (err: any) {
