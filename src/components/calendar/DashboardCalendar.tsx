@@ -3,6 +3,7 @@ import { Task, Priority } from '../../types'
 import { useGroupStore } from '../../stores/groupStore'
 import { useTaskStore } from '../../stores/taskStore'
 import { useAuthStore } from '../../stores/authStore'
+import { useToast } from '../ui/Toast'
 import TaskForm from '../tasks/TaskForm'
 import DayTasksModal from './DayTasksModal'
 import { getTasksForDate, getTaskDisplayPriority } from '../../utils/taskDisplayLogic'
@@ -37,6 +38,7 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
   const { user } = useAuthStore()
   const { getGroupById } = useGroupStore()
   const { filters, toggleTaskCompletion, updateTask } = useTaskStore()
+  const { showToast } = useToast()
 
   // Filter tasks based on selected group
   const filteredTasks = filters.groupId 
@@ -143,8 +145,10 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
     try {
       await toggleTaskCompletion(user.uid, task.id, true)
       setContextMenu(null)
+      showToast(`Đã hoàn thành công việc "${task.title}"`, 'success')
     } catch (error) {
       console.error('Failed to mark task as done:', error)
+      showToast('Có lỗi xảy ra khi đánh dấu hoàn thành', 'error')
     }
   }
 

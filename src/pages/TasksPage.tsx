@@ -7,12 +7,17 @@ import TaskForm from '../components/tasks/TaskForm'
 import { PlusIcon } from '@heroicons/react/24/outline'
 
 const TasksPage = () => {
-  const { loading, fetchTasks } = useTaskStore()
+  const { loading, fetchTasks, cleanup } = useTaskStore()
   const [showTaskForm, setShowTaskForm] = useState(false)
 
   useEffect(() => {
     fetchTasks()
-  }, [fetchTasks])
+    
+    // Cleanup real-time listener on unmount
+    return () => {
+      cleanup()
+    }
+  }, [fetchTasks, cleanup])
 
   if (loading) {
     return (

@@ -3,8 +3,6 @@ import { Task, TaskFilters, TaskSort, TaskStatus, Priority } from '../types'
 import { taskService } from '../services/tasks'
 import { useAuthStore } from './authStore'
 import { debugLog, debugError } from '../utils/debug'
-import { collection, getDocsFromServer } from 'firebase/firestore'
-import { db } from '../services/firebase'
 
 interface TaskState {
   tasks: Task[]
@@ -25,6 +23,7 @@ interface TaskState {
   // Task operations
   fetchTasks: () => void
   refreshTasks: () => void
+  cleanup: () => void
   createTask: (userId: string, taskData: Omit<Task, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => Promise<void>
   updateTask: (userId: string, taskId: string, updates: Partial<Task>) => Promise<void>
   deleteTask: (userId: string, taskId: string) => Promise<void>
@@ -80,46 +79,32 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     const setupTasksWithRetry = async (retries = 3) => {
       try {
         // Wait for auth to be fully ready
-        await new Promise(resolve => setTimeout(resolve, 300)) // Reduced to 300ms
+        await new Promise(resolve => setTimeout(resolve, 300))
         
-        // Use fallback approach directly to avoid permission errors
-        debugLog('TaskStore: Using server read to avoid permission issues')
+        debugLog('TaskStore: Setting up real-time listener for tasks')
         
-        try {
-          const tasksRef = collection(db, 'users', user.uid, 'tasks')
-          const snapshot = await getDocsFromServer(tasksRef)
-          
-          const tasks = snapshot.docs.map(doc => {
-            const data = doc.data()
-            return {
-              id: doc.id,
-              userId: user.uid,
-              title: data.title,
-              description: data.description || '',
-              priority: data.priority,
-              status: data.status,
-              isCompleted: data.isCompleted,
-              groupId: data.groupId || 'default',
-              startDate: data.startDate?.toDate?.() || null,
-              dueDate: data.dueDate?.toDate?.() || null,
-              createdAt: data.createdAt?.toDate?.() || new Date(),
-              updatedAt: data.updatedAt?.toDate?.() || new Date(),
-              completedAt: data.completedAt?.toDate?.() || null,
-            }
+        // Use real-time subscription instead of one-time read
+        const newUnsubscribe = taskService.subscribeToTasks(user.uid, (tasks) => {
+          debugLog('TaskStore: Received real-time tasks update', { count: tasks.length })
+          set({ 
+            tasks, 
+            loading: false, 
+            error: null 
           })
-          
-          set({ tasks, loading: false, error: null })
-        } catch (error: any) {
-          debugError('TaskStore: Server read failed', error)
-          set({ loading: false, error: 'Failed to load tasks' })
-        }
+        })
+        
+        // Store the unsubscribe function for cleanup
+        set({ unsubscribe: newUnsubscribe })
+        
+        debugLog('TaskStore: Real-time listener setup complete')
+        
       } catch (error: any) {
-        debugError('TaskStore: Failed to subscribe to tasks', error)
+        debugError('TaskStore: Failed to setup real-time listener', error)
         
         // Retry if permission denied and retries left
         if (error.code === 'permission-denied' && retries > 0) {
           debugLog(`TaskStore: Retrying in 1s... (${retries} retries left)`)
-          setTimeout(() => setupTasksWithRetry(retries - 1), 500)
+          setTimeout(() => setupTasksWithRetry(retries - 1), 1000)
           return
         }
         
@@ -131,45 +116,19 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   refreshTasks: () => {
-    const authState = useAuthStore.getState()
-    const user = authState.user
-    
-    if (!user) return
-    
-    set({ loading: true })
-    
-    // Force server read for refresh
-    const refreshData = async () => {
-      try {
-        const tasksRef = collection(db, 'users', user.uid, 'tasks')
-        const snapshot = await getDocsFromServer(tasksRef)
-        
-        const tasks = snapshot.docs.map(doc => {
-          const data = doc.data()
-          return {
-            id: doc.id,
-            userId: user.uid,
-            title: data.title,
-            description: data.description || '',
-            priority: data.priority,
-            status: data.status,
-            isCompleted: data.isCompleted,
-            groupId: data.groupId || 'default',
-            startDate: data.startDate?.toDate?.() || null,
-            dueDate: data.dueDate?.toDate?.() || null,
-            createdAt: data.createdAt?.toDate?.() || new Date(),
-            updatedAt: data.updatedAt?.toDate?.() || new Date(),
-            completedAt: data.completedAt?.toDate?.() || null,
-          }
-        })
-        
-        set({ tasks, loading: false, error: null })
-      } catch (error: any) {
-        set({ loading: false, error: 'Failed to refresh tasks' })
-      }
+    debugLog('TaskStore: Manual refresh requested, re-establishing real-time listener')
+    // Since we're using real-time listeners, just re-fetch to re-establish the subscription
+    // This ensures we have the latest data and a fresh listener connection
+    get().fetchTasks()
+  },
+
+  cleanup: () => {
+    const { unsubscribe } = get()
+    debugLog('TaskStore: Cleaning up real-time listener')
+    if (unsubscribe) {
+      unsubscribe()
+      set({ unsubscribe: null })
     }
-    
-    refreshData()
   },
   
   createTask: async (userId, taskData) => {

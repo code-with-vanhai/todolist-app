@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 const DashboardPage = () => {
-  const { tasks, loading, fetchTasks } = useTaskStore()
+  const { tasks, loading, fetchTasks, cleanup } = useTaskStore()
   const [showTaskForm, setShowTaskForm] = useState(false)
   const [stats, setStats] = useState({
     total: 0,
@@ -24,7 +24,12 @@ const DashboardPage = () => {
 
   useEffect(() => {
     fetchTasks()
-  }, [fetchTasks])
+    
+    // Cleanup real-time listener on unmount
+    return () => {
+      cleanup()
+    }
+  }, [fetchTasks, cleanup])
 
   useEffect(() => {
     const now = new Date()
