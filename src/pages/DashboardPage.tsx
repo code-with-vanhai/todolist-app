@@ -1,16 +1,18 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { useTaskStore } from '../stores/taskStore'
 import { TaskStatus } from '../types'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import ThemeToggle from '../components/ui/ThemeToggle'
-import TaskForm from '../components/tasks/TaskForm'
-import DashboardCalendar from '../components/calendar/DashboardCalendar'
-import { 
-  CheckCircleIcon, 
-  ClockIcon, 
+import {
+  CheckCircleIcon,
+  ClockIcon,
   ExclamationTriangleIcon,
-  PlusIcon 
+  PlusIcon
 } from '@heroicons/react/24/outline'
+
+// Lazy load heavy components
+const TaskForm = lazy(() => import('../components/tasks/TaskForm'))
+const DashboardCalendar = lazy(() => import('../components/calendar/DashboardCalendar'))
 
 const DashboardPage = () => {
   const { tasks, loading, fetchTasks, cleanup } = useTaskStore()
@@ -132,7 +134,13 @@ const DashboardPage = () => {
           <h2 className="text-lg font-medium text-gray-900 dark:text-white">Calendar</h2>
         </div>
         <div className="p-6">
-          <DashboardCalendar tasks={tasks} />
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <LoadingSpinner size="lg" />
+            </div>
+          }>
+            <DashboardCalendar tasks={tasks} />
+          </Suspense>
           <div className="mt-4 text-center">
             <p className="text-sm text-gray-500 dark:text-gray-400">
               Double-click vào ngày để xem chi tiết công việc
@@ -142,10 +150,16 @@ const DashboardPage = () => {
       </div>
 
       {showTaskForm && (
-        <TaskForm
-          onClose={() => setShowTaskForm(false)}
-          onSuccess={() => setShowTaskForm(false)}
-        />
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-32">
+            <LoadingSpinner size="md" />
+          </div>
+        }>
+          <TaskForm
+            onClose={() => setShowTaskForm(false)}
+            onSuccess={() => setShowTaskForm(false)}
+          />
+        </Suspense>
       )}
     </div>
   )

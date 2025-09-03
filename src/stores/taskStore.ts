@@ -3,6 +3,12 @@ import { Task, TaskFilters, TaskSort, TaskStatus, Priority } from '../types'
 import { taskService } from '../services/tasks'
 import { useAuthStore } from './authStore'
 import { debugLog, debugError } from '../utils/debug'
+import { cacheManager } from '../utils/cacheManager'
+import { backgroundSyncManager } from '../utils/backgroundSync'
+
+// Create a memoization cache for filtered tasks
+const filterCache = new Map<string, Task[]>()
+let lastFilterKey = ''
 
 interface TaskState {
   tasks: Task[]
@@ -33,6 +39,16 @@ interface TaskState {
   getFilteredTasks: () => Task[]
   getTasksByStatus: (status: TaskStatus) => Task[]
   getOverdueTasks: () => Task[]
+
+  // Cache management
+  getCacheStats: () => Promise<{ entries: number; totalSize: number }>
+  clearCache: () => Promise<void>
+  preloadCache: (userId: string) => Promise<void>
+
+  // Background sync
+  getSyncStatus: () => { isOnline: boolean; pendingCount: number; isSyncing: boolean }
+  getPendingOperations: () => any[]
+  forceSync: () => Promise<void>
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -131,23 +147,61 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
   
-  createTask: async (userId, taskData) => {
+    createTask: async (userId, taskData) => {
     debugLog('TaskStore: Creating task', { userId, taskData })
     set({ loading: true, error: null })
+
     try {
       const result = await taskService.createTask(userId, taskData)
       debugLog('TaskStore: Create task result', result)
-      
+
       if (result.error) {
         debugError('TaskStore: Create task failed', result.error)
+
+        // If offline or network error, add to background sync
+        if (!navigator.onLine || result.error.includes('network')) {
+          debugLog('TaskStore: Adding to background sync queue')
+          await backgroundSyncManager.addPendingOperation('create', 'tasks', { userId, ...taskData })
+
+          // Add optimistic update to local state
+          const newTask: Task = {
+            id: `temp_${Date.now()}`,
+            userId,
+            title: taskData.title,
+            description: taskData.description,
+            status: taskData.status || TaskStatus.TODO,
+            priority: taskData.priority || Priority.MEDIUM,
+            isCompleted: false,
+            startDate: taskData.startDate,
+            dueDate: taskData.dueDate,
+            groupId: taskData.groupId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            completedAt: null
+          }
+
+          // Cache the new task locally
+          await cacheManager.set(`task_${newTask.id}`, newTask, { ttl: 24 * 60 * 60 * 1000 })
+
+          debugLog('TaskStore: Task added to cache for offline sync')
+        }
+
         set({ error: result.error, loading: false })
         throw new Error(result.error)
       } else {
         debugLog('TaskStore: Task created successfully', result.id)
+        // Clear cache for user to ensure fresh data
+        taskService.clearUserCache(userId)
         set({ loading: false })
       }
     } catch (error: any) {
       debugError('TaskStore: Create task exception', error)
+
+      // Add to background sync if it's a network error
+      if (!navigator.onLine) {
+        await backgroundSyncManager.addPendingOperation('create', 'tasks', { userId, ...taskData })
+      }
+
       set({ error: error.message, loading: false })
       throw error
     }
@@ -163,6 +217,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         throw new Error(result.error)
       }
       debugLog('TaskStore: Update task successful')
+      // Clear cache for user to ensure fresh data
+      taskService.clearUserCache(userId)
     } catch (error: any) {
       debugError('TaskStore: Update task exception', error)
       set({ error: error.message })
@@ -177,6 +233,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         set({ error: result.error })
         throw new Error(result.error)
       }
+      // Clear cache for user to ensure fresh data
+      taskService.clearUserCache(userId)
     } catch (error: any) {
       set({ error: error.message })
       throw error
@@ -206,29 +264,47 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   
   getFilteredTasks: () => {
     const { tasks, filters, sort } = get()
+
+    // Create a cache key based on current filters and sort
+    const filterKey = JSON.stringify({
+      taskCount: tasks.length,
+      filters,
+      sort,
+      // Include a hash of task IDs to detect task changes
+      taskIds: tasks.map(t => t.id).sort().join(',')
+    })
+
+    // Return cached result if filters haven't changed and tasks haven't changed
+    if (filterCache.has(filterKey) && filterKey === lastFilterKey) {
+      debugLog('TaskStore: Using cached filtered tasks')
+      return filterCache.get(filterKey)!
+    }
+
+    debugLog('TaskStore: Computing filtered tasks', { filterKey })
+
     let filteredTasks = [...tasks]
-    
+
     // Apply filters
     if (filters.status && filters.status.length > 0) {
       filteredTasks = filteredTasks.filter(task => filters.status!.includes(task.status))
     }
-    
+
     if (filters.priority && filters.priority.length > 0) {
       filteredTasks = filteredTasks.filter(task => filters.priority!.includes(task.priority))
     }
-    
+
     if (filters.groupId) {
       filteredTasks = filteredTasks.filter(task => task.groupId === filters.groupId)
     }
-    
+
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase()
-      filteredTasks = filteredTasks.filter(task => 
+      filteredTasks = filteredTasks.filter(task =>
         task.title.toLowerCase().includes(query) ||
         task.description?.toLowerCase().includes(query)
       )
     }
-    
+
     if (filters.dateRange) {
       filteredTasks = filteredTasks.filter(task => {
         if (!task.dueDate) return false
@@ -269,7 +345,25 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         return aValue < bValue ? 1 : -1
       }
     })
-    
+
+    // Cache the result and update last filter key
+    filterCache.set(filterKey, filteredTasks)
+    lastFilterKey = filterKey
+
+    // Limit cache size to prevent memory leaks
+    if (filterCache.size > 10) {
+      const firstKey = filterCache.keys().next().value
+      if (firstKey) {
+        filterCache.delete(firstKey)
+      }
+    }
+
+    debugLog('TaskStore: Filtered tasks computed and cached', {
+      originalCount: tasks.length,
+      filteredCount: filteredTasks.length,
+      cacheSize: filterCache.size
+    })
+
     return filteredTasks
   },
   
@@ -281,10 +375,72 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   getOverdueTasks: () => {
     const { tasks } = get()
     const now = new Date()
-    return tasks.filter(task => 
-      task.dueDate && 
-      task.dueDate < now && 
+    return tasks.filter(task =>
+      task.dueDate &&
+      task.dueDate < now &&
       task.status !== TaskStatus.COMPLETED
     )
+  },
+
+  // Cache management methods
+  getCacheStats: async () => {
+    try {
+      const stats = await cacheManager.getStats()
+      debugLog('TaskStore: Cache stats retrieved', stats)
+      return stats
+    } catch (error) {
+      debugError('TaskStore: Failed to get cache stats', error)
+      return { entries: 0, totalSize: 0 }
+    }
+  },
+
+  clearCache: async () => {
+    try {
+      await cacheManager.clear()
+      debugLog('TaskStore: Cache cleared successfully')
+    } catch (error) {
+      debugError('TaskStore: Failed to clear cache', error)
+    }
+  },
+
+  preloadCache: async (userId) => {
+    try {
+      debugLog('TaskStore: Preloading cache for user', userId)
+
+      // Preload user's tasks
+      const tasks = await cacheManager.get(`tasks_${userId}_all`)
+      if (tasks && Array.isArray(tasks)) {
+        debugLog('TaskStore: Cache preloaded with tasks', { count: tasks.length })
+      }
+
+      // Preload user settings/preferences if any
+      const userSettings = await cacheManager.get(`user_settings_${userId}`)
+      if (userSettings) {
+        debugLog('TaskStore: User settings preloaded from cache')
+      }
+
+    } catch (error) {
+      debugError('TaskStore: Failed to preload cache', error)
+    }
+  },
+
+  // Background sync methods
+  getSyncStatus: () => {
+    return backgroundSyncManager.getSyncStatus()
+  },
+
+  getPendingOperations: () => {
+    return backgroundSyncManager.getPendingOperations()
+  },
+
+  forceSync: async () => {
+    try {
+      debugLog('TaskStore: Forcing background sync')
+      await backgroundSyncManager.syncPendingOperations()
+      debugLog('TaskStore: Background sync completed')
+    } catch (error) {
+      debugError('TaskStore: Background sync failed', error)
+      throw error
+    }
   },
 }))

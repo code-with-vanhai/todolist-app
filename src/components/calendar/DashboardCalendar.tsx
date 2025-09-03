@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { Task, Priority } from '../../types'
 import { useGroupStore } from '../../stores/groupStore'
 import { useTaskStore } from '../../stores/taskStore'
@@ -7,8 +7,8 @@ import { useToast } from '../ui/Toast'
 import TaskForm from '../tasks/TaskForm'
 import DayTasksModal from './DayTasksModal'
 import { getTasksForDate, getTaskDisplayPriority } from '../../utils/taskDisplayLogic'
-import { 
-  ChevronLeftIcon, 
+import {
+  ChevronLeftIcon,
   ChevronRightIcon,
   CheckIcon
 } from '@heroicons/react/24/outline'
@@ -17,7 +17,7 @@ interface DashboardCalendarProps {
   tasks: Task[]
 }
 
-const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
+const DashboardCalendar: React.FC<DashboardCalendarProps> = memo(({ tasks }) => {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [editingTask, setEditingTask] = useState<Task | null>(null)
   const [contextMenu, setContextMenu] = useState<{
@@ -41,63 +41,77 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
   const { showToast } = useToast()
 
   // Filter tasks based on selected group
-  const filteredTasks = filters.groupId 
-    ? tasks.filter(task => task.groupId === filters.groupId)
-    : tasks // Show all tasks when no specific group filter is applied (including when Default is selected)
+  const filteredTasks = useMemo(() =>
+    filters.groupId
+      ? tasks.filter(task => task.groupId === filters.groupId)
+      : tasks // Show all tasks when no specific group filter is applied (including when Default is selected)
+  , [tasks, filters.groupId])
 
-  // Get current month info
-  const year = currentDate.getFullYear()
-  const month = currentDate.getMonth()
-  const today = new Date()
-  
-  // Get first day of month and number of days
-  const firstDayOfMonth = new Date(year, month, 1)
-  const lastDayOfMonth = new Date(year, month + 1, 0)
-  const daysInMonth = lastDayOfMonth.getDate()
-  const startingDayOfWeek = firstDayOfMonth.getDay()
+  // Memoize calendar calculations
+  const calendarData = useMemo(() => {
+    const year = currentDate.getFullYear()
+    const month = currentDate.getMonth()
+    const today = new Date()
 
-  // Get previous month's last days to fill the grid
-  const prevMonth = new Date(year, month - 1, 0)
-  const daysFromPrevMonth = startingDayOfWeek
-  
-  // Generate calendar days
-  const calendarDays = []
-  
-  // Previous month days
-  for (let i = daysFromPrevMonth; i > 0; i--) {
-    const day = prevMonth.getDate() - i + 1
-    const date = new Date(year, month - 1, day)
-    calendarDays.push({
-      date,
-      day,
-      isCurrentMonth: false,
-      isToday: false,
-    })
-  }
-  
-  // Current month days
-  for (let day = 1; day <= daysInMonth; day++) {
-    const date = new Date(year, month, day)
-    const isToday = date.toDateString() === today.toDateString()
-    calendarDays.push({
-      date,
-      day,
-      isCurrentMonth: true,
-      isToday,
-    })
-  }
-  
-  // Next month days to complete the grid (42 days = 6 weeks)
-  const remainingDays = 42 - calendarDays.length
-  for (let day = 1; day <= remainingDays; day++) {
-    const date = new Date(year, month + 1, day)
-    calendarDays.push({
-      date,
-      day,
-      isCurrentMonth: false,
-      isToday: false,
-    })
-  }
+    // Get first day of month and number of days
+    const firstDayOfMonth = new Date(year, month, 1)
+    const lastDayOfMonth = new Date(year, month + 1, 0)
+    const daysInMonth = lastDayOfMonth.getDate()
+    const startingDayOfWeek = firstDayOfMonth.getDay()
+
+    // Get previous month's last days to fill the grid
+    const prevMonth = new Date(year, month - 1, 0)
+    const daysFromPrevMonth = startingDayOfWeek
+
+    // Generate calendar days
+    const calendarDays = []
+
+    // Previous month days
+    for (let i = daysFromPrevMonth; i > 0; i--) {
+      const day = prevMonth.getDate() - i + 1
+      const date = new Date(year, month - 1, day)
+      calendarDays.push({
+        date,
+        day,
+        isCurrentMonth: false,
+        isToday: false,
+      })
+    }
+
+    // Current month days
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(year, month, day)
+      const isToday = date.toDateString() === today.toDateString()
+      calendarDays.push({
+        date,
+        day,
+        isCurrentMonth: true,
+        isToday,
+      })
+    }
+
+    // Next month days to complete the grid (42 days = 6 weeks)
+    const remainingDays = 42 - calendarDays.length
+    for (let day = 1; day <= remainingDays; day++) {
+      const date = new Date(year, month + 1, day)
+      calendarDays.push({
+        date,
+        day,
+        isCurrentMonth: false,
+        isToday: false,
+      })
+    }
+
+    return {
+      year,
+      month,
+      calendarDays,
+      firstDayOfMonth,
+      lastDayOfMonth,
+      daysInMonth,
+      startingDayOfWeek
+    }
+  }, [currentDate])
 
   // Get tasks for a specific date using new logic
   const getTasksForDateWithInfo = (date: Date) => {
@@ -105,13 +119,13 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
   }
 
   // Navigate months
-  const goToPreviousMonth = () => {
-    setCurrentDate(new Date(year, month - 1, 1))
-  }
+  const goToPreviousMonth = useCallback(() => {
+    setCurrentDate(new Date(calendarData.year, calendarData.month - 1, 1))
+  }, [calendarData.year, calendarData.month])
 
-  const goToNextMonth = () => {
-    setCurrentDate(new Date(year, month + 1, 1))
-  }
+  const goToNextMonth = useCallback(() => {
+    setCurrentDate(new Date(calendarData.year, calendarData.month + 1, 1))
+  }, [calendarData.year, calendarData.month])
 
   const goToToday = () => {
     setCurrentDate(new Date())
@@ -296,7 +310,7 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-4">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {monthNames[month]} {year}
+            {monthNames[calendarData.month]} {calendarData.year}
           </h3>
           {selectedGroupName && (
             <span className="text-sm text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 px-2 py-1 rounded-full">
@@ -340,7 +354,7 @@ const DashboardCalendar: React.FC<DashboardCalendarProps> = ({ tasks }) => {
 
       {/* Calendar Grid */}
       <div className="grid grid-cols-7 gap-1">
-        {calendarDays.map((calendarDay, index) => {
+        {calendarData.calendarDays.map((calendarDay, index) => {
           const dayTasksInfo = getTasksForDateWithInfo(calendarDay.date)
           const isDragOver = dragOverDate?.toDateString() === calendarDay.date.toDateString()
           
@@ -603,6 +617,6 @@ ${isOverdue ? '⚠️ OVERDUE' : urgencyLevel === 'critical' ? '🔥 CRITICAL' :
       />
     </div>
   )
-}
+})
 
 export default DashboardCalendar

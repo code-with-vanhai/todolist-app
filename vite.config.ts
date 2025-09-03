@@ -7,6 +7,9 @@ export default defineConfig({
   base: '/todolist-app/',
   build: {
     outDir: 'dist',
+    // Image optimization settings
+    assetsInlineLimit: 4096, // Inline assets smaller than 4kb
+    assetsDir: 'assets',
     rollupOptions: {
       external: (id) => {
         // Don't externalize React - keep it bundled

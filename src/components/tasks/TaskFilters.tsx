@@ -1,39 +1,55 @@
-import { useState } from 'react'
+import { useState, useCallback, memo, useMemo, useEffect } from 'react'
 import { useTaskStore } from '../../stores/taskStore'
 import { TaskStatus, Priority } from '../../types'
 import { MagnifyingGlassIcon, FunnelIcon } from '@heroicons/react/24/outline'
+import debounce from 'lodash.debounce'
 
-const TaskFilters = () => {
+const TaskFilters = memo(() => {
   const { filters, setFilters } = useTaskStore()
   const [searchQuery, setSearchQuery] = useState(filters.searchQuery || '')
 
-  const handleStatusFilter = (status: TaskStatus) => {
+  const handleStatusFilter = useCallback((status: TaskStatus) => {
     const currentStatuses = filters.status || []
     const newStatuses = currentStatuses.includes(status)
       ? currentStatuses.filter(s => s !== status)
       : [...currentStatuses, status]
-    
-    setFilters({ ...filters, status: newStatuses })
-  }
 
-  const handlePriorityFilter = (priority: Priority) => {
+    setFilters({ ...filters, status: newStatuses })
+  }, [filters, setFilters])
+
+  const handlePriorityFilter = useCallback((priority: Priority) => {
     const currentPriorities = filters.priority || []
     const newPriorities = currentPriorities.includes(priority)
       ? currentPriorities.filter(p => p !== priority)
       : [...currentPriorities, priority]
-    
+
     setFilters({ ...filters, priority: newPriorities })
-  }
+  }, [filters, setFilters])
 
-  const handleSearchChange = (value: string) => {
+  // Debounced search handler - only updates filters after 300ms of no typing
+  const debouncedSearch = useMemo(
+    () => debounce((value: string) => {
+      setFilters({ ...filters, searchQuery: value || undefined })
+    }, 300),
+    [filters, setFilters]
+  )
+
+  const handleSearchChange = useCallback((value: string) => {
     setSearchQuery(value)
-    setFilters({ ...filters, searchQuery: value || undefined })
-  }
+    debouncedSearch(value)
+  }, [debouncedSearch])
 
-  const clearFilters = () => {
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      debouncedSearch.cancel()
+    }
+  }, [debouncedSearch])
+
+  const clearFilters = useCallback(() => {
     setFilters({})
     setSearchQuery('')
-  }
+  }, [setFilters])
 
   const statusOptions = [
     { value: TaskStatus.TODO, label: 'To Do', color: 'bg-gray-100 text-gray-800' },
@@ -126,6 +142,6 @@ const TaskFilters = () => {
       </div>
     </div>
   )
-}
+})
 
 export default TaskFilters

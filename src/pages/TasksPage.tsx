@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { useTaskStore } from '../stores/taskStore'
 import LoadingSpinner from '../components/ui/LoadingSpinner'
 import TaskList from '../components/tasks/TaskList'
 import TaskFilters from '../components/tasks/TaskFilters'
-import TaskForm from '../components/tasks/TaskForm'
 import { PlusIcon } from '@heroicons/react/24/outline'
+
+// Lazy load heavy components
+const TaskForm = lazy(() => import('../components/tasks/TaskForm'))
 
 const TasksPage = () => {
   const { loading, fetchTasks, cleanup } = useTaskStore()
@@ -50,10 +52,16 @@ const TasksPage = () => {
       </div>
 
       {showTaskForm && (
-        <TaskForm
-          onClose={() => setShowTaskForm(false)}
-          onSuccess={() => setShowTaskForm(false)}
-        />
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-32">
+            <LoadingSpinner size="md" />
+          </div>
+        }>
+          <TaskForm
+            onClose={() => setShowTaskForm(false)}
+            onSuccess={() => setShowTaskForm(false)}
+          />
+        </Suspense>
       )}
     </div>
   )
